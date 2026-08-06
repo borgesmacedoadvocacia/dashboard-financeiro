@@ -62,9 +62,6 @@ do `index.html` pelo texto gerado. Depois é só commit e push.
 - **Botões de mês** (Jan…Dez) para montar qualquer combinação, inclusive meses
   não consecutivos (ex.: Janeiro + Julho). O menu suspenso se ajusta sozinho quando a
   combinação corresponde a um grupo pronto.
-- **Base de comparação:**
-  - `Projeção cheia` — projeção mensal × número de meses selecionados
-  - `Projeção proporcional` — projeção ajustada aos dias já decorridos
 
 ## Sobre o mês em andamento
 
@@ -72,21 +69,17 @@ O dashboard detecta sozinho até que data a planilha está lançada (última dat
 `Fluxo Financeiro Anual`) e marca o mês corrente como parcial — com aviso no topo,
 asterisco nos gráficos e um ponto de atenção dedicado.
 
-Vale saber que **nenhuma das duas bases de comparação é perfeita para um mês aberto**:
-
-- a *projeção cheia* subestima os percentuais de receita, porque o faturamento do mês
-  ainda não entrou todo;
-- a *projeção proporcional* superestima os de despesa, porque folha, aluguel e
-  mensalidades são pagos de uma vez no início do mês, e não diluídos dia a dia.
-
-Para decisão, o **último mês fechado** continua sendo a base mais confiável.
+A comparação é **sempre contra a projeção mensal cheia**, nunca rateada por dias
+decorridos. Num mês ainda aberto isso significa que os percentuais vão subir conforme
+o restante do faturamento e das despesas for lançado — o aviso no topo deixa isso
+explícito. Para decisão, o **último mês fechado** continua sendo a base mais confiável.
 
 ## Como os números são calculados
 
 | Indicador | Origem |
 |---|---|
 | Receita, despesas, impostos, lucro | Lidos diretamente das linhas do DRE, na coluna do mês |
-| Projeção | Coluna `PROJEÇÃO` do DRE, multiplicada pelo número de meses (ou pela fração decorrida) |
+| Projeção | Coluna `PROJEÇÃO` (coluna **D**) do DRE — uma meta **mensal**. Num período de vários meses, é multiplicada pelo número de meses |
 | % da projeção | `realizado ÷ projeção` |
 | Excedente | `realizado − projeção` (positivo em despesa = estouro; negativo = economia) |
 | **Saídas totais** | `Total de Despesas do DRE + Despesas Bancárias` |

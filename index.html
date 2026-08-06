@@ -104,15 +104,6 @@
   .chip.sem-dados { opacity: 0.45; }
   .chip.parcial.ativo { background: var(--amarelo); border-color: var(--amarelo); color: #1a1200; }
 
-  .toggle-grupo { display: inline-flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
-  .toggle-grupo button {
-    background: var(--bg3); border: none; color: var(--texto-muted);
-    padding: 0.5rem 0.85rem; font-size: 0.78rem; font-weight: 600;
-    cursor: pointer; font-family: inherit; transition: all .15s;
-  }
-  .toggle-grupo button + button { border-left: 1px solid var(--borda); }
-  .toggle-grupo button.ativo { background: var(--azul); color: #fff; }
-
   .badge-info {
     display: inline-flex; align-items: center; gap: 0.4rem;
     background: var(--bg3); border: 1px solid var(--borda); border-radius: 8px;
@@ -359,11 +350,6 @@
   <div class="filtros-linha">
     <span class="filtro-label">Período</span>
     <select class="campo" id="selPeriodo"></select>
-    <span class="filtro-label">Comparar com</span>
-    <div class="toggle-grupo" id="toggleBase">
-      <button data-base="cheia" class="ativo">Projeção cheia</button>
-      <button data-base="proporcional">Projeção proporcional</button>
-    </div>
     <span class="badge-info" id="badgeCobertura">—</span>
   </div>
   <div class="filtros-linha">
@@ -561,7 +547,6 @@ const PALETA = ['#3b82f6','#ef4444','#f59e0b','#22c55e','#a855f7','#06b6d4','#ec
 let DRE = null;          // { linhas, grupos, meta }
 let CORTE = null;        // { ultimaData, mesRef, dia, diasNoMes }
 let selecao = [];        // meses selecionados (0-11)
-let baseProjecao = 'cheia';
 let graficos = {};
 let gruposAbertos = {};
 
@@ -804,28 +789,23 @@ function detectarCorte(fluxo, serialData) {
   return { ultimaData: d, mesRef: mes, dia, diasNoMes: diasNoMes(mes, ano), ano };
 }
 
-/** Fração do mês já decorrida — 1 para meses fechados, 0 para meses futuros. */
-function fracaoMes(mesIdx) {
-  if (!CORTE || CORTE.mesRef === null) return 1;
-  if (mesIdx < CORTE.mesRef) return 1;
-  if (mesIdx > CORTE.mesRef) return 0;
-  return CORTE.dia / CORTE.diasNoMes;
-}
 function mesTemDados(mesIdx) { return CORTE ? mesIdx <= CORTE.mesRef : true; }
 function mesParcial(mesIdx)  { return CORTE ? (mesIdx === CORTE.mesRef && CORTE.dia < CORTE.diasNoMes) : false; }
 
 /* =========================================================================
    AGREGAÇÃO
    ========================================================================= */
+/**
+ * A coluna PROJEÇÃO do DRE é uma meta MENSAL. O cruzamento é sempre contra o
+ * resultado do mês cheio — nunca rateado por dias decorridos.
+ */
 function agregar(linha, sel) {
   const realizado = sel.reduce((s, m) => s + valorLinha(linha, m), 0);
   const unit = projLinha(linha);
-  const projCheia = unit * sel.length;
-  const projProp = unit * sel.reduce((s, m) => s + fracaoMes(m), 0);
-  const projecao = baseProjecao === 'proporcional' ? projProp : projCheia;
+  const projecao = unit * sel.length;
   const percentual = projecao > 0 ? (realizado / projecao) * 100 : null;
   const excedente = projecao > 0 ? realizado - projecao : null;
-  return { realizado, projecao, projCheia, projProp, percentual, excedente, unit };
+  return { realizado, projecao, percentual, excedente, unit };
 }
 
 function mesesSelecionados() { return selecao.slice().sort((a, b) => a - b); }
@@ -942,11 +922,8 @@ function renderKPIs(sel) {
 
   document.getElementById('kpis').innerHTML = cards.join('');
 
-  const baseTxt = baseProjecao === 'proporcional'
-    ? 'projeção proporcional aos dias decorridos'
-    : 'projeção cheia (mensal × nº de meses)';
   document.getElementById('subResumo').innerHTML =
-    `<b>${rotuloPeriodo()}</b> · ${sel.length} ${sel.length === 1 ? 'mês' : 'meses'} · comparado com a ${baseTxt} · saídas totais no período: <b>${moeda(saidas)}</b>`;
+    `<b>${rotuloPeriodo()}</b> · ${sel.length} ${sel.length === 1 ? 'mês' : 'meses'} · comparado com a projeção mensal do DRE${sel.length > 1 ? ` × ${sel.length} meses` : ''} · saídas totais no período: <b>${moeda(saidas)}</b>`;
 
   return { rec, banc, recLq, desp, imp, lucro, saidas, saldoIni, saldoFim, balanco, margem };
 }
@@ -1254,7 +1231,7 @@ function renderEvolucao(sel) {
   // Consumo da projeção de despesas, mês a mês
   const consumo = idx.map(i => {
     if (!mesTemDados(i)) return null;
-    const base = baseProjecao === 'proporcional' ? projLinha(M.totalDesp) * fracaoMes(i) : projLinha(M.totalDesp);
+    const base = projLinha(M.totalDesp);
     return base > 0 ? (valorLinha(M.totalDesp, i) / base) * 100 : null;
   });
   desenhar('grafConsumo', {
@@ -1340,7 +1317,7 @@ function renderAnalises(sel, tot) {
     const frac = (CORTE.dia / CORTE.diasNoMes) * 100;
     atencao.push({
       nivel: 'atencao', icone: '&#9203;', titulo: `Período com mês em aberto: ${nomes}`,
-      texto: `A planilha está lançada até <b>${CORTE.ultimaData.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</b>, ou seja, <b>${CORTE.dia} de ${CORTE.diasNoMes} dias (${pct1(frac)})</b> do mês. Os dois modos de comparação distorcem em direções opostas neste caso: a <b>projeção cheia</b> subestima os percentuais de receita (o faturamento do mês ainda não entrou todo), enquanto a <b>projeção proporcional</b> superestima os de despesa — folha, aluguel e mensalidades são pagos de uma vez no início do mês, não diluídos dia a dia. Para decisão, o mês fechado anterior é a base mais confiável.`
+      texto: `A planilha está lançada até <b>${CORTE.ultimaData.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</b>, ou seja, <b>${CORTE.dia} de ${CORTE.diasNoMes} dias (${pct1(frac)})</b> do mês. A comparação é sempre contra a projeção mensal cheia, então os percentuais deste mês ainda vão subir conforme o restante do faturamento e das despesas for lançado. Para decisão, o último mês fechado é a base mais confiável.`
     });
   }
 
@@ -1504,7 +1481,7 @@ function renderAnalises(sel, tot) {
 
   obs.push({
     nivel: 'info', icone: '&#128202;', titulo: `Período analisado: ${rotuloPeriodo()}`,
-    texto: `${sel.length} ${sel.length === 1 ? 'mês selecionado' : 'meses selecionados'}, sendo <b>${sel.filter(mesTemDados).length}</b> com lançamentos. Comparação feita contra a <b>${baseProjecao === 'proporcional' ? 'projeção proporcional aos dias decorridos' : 'projeção cheia (valor mensal × número de meses)'}</b>. Projeção do período: <b>${moeda(tot.desp.projecao)}</b> de despesas para <b>${moeda(tot.rec.projecao)}</b> de receita.`
+    texto: `${sel.length} ${sel.length === 1 ? 'mês selecionado' : 'meses selecionados'}, sendo <b>${sel.filter(mesTemDados).length}</b> com lançamentos. A projeção vem da coluna <b>PROJEÇÃO</b> do DRE, que é uma meta <b>mensal</b>${sel.length > 1 ? `, multiplicada pelos ${sel.length} meses do período` : ''}. Projeção do período: <b>${moeda(tot.desp.projecao)}</b> de despesas para <b>${moeda(tot.rec.projecao)}</b> de receita.`
   });
 
   obs.push({
@@ -1629,13 +1606,6 @@ function montarFiltros() {
     });
   });
 
-  document.querySelectorAll('#toggleBase button').forEach(b => {
-    b.addEventListener('click', () => {
-      baseProjecao = b.dataset.base;
-      document.querySelectorAll('#toggleBase button').forEach(x => x.classList.toggle('ativo', x === b));
-      render();
-    });
-  });
 }
 
 /** Se a seleção atual bate com um preset, mostra o preset no dropdown. */
