@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trocar a senha do dashboard | Borges Macedo</title>
+<link rel="icon" type="image/png" href="favicon.png" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:#0f1117; --bg2:#161b26; --bg3:#1e2536; --azul:#2563eb; --azul-claro:#3b82f6;
+    --verde:#22c55e; --amarelo:#f59e0b; --vermelho:#ef4444;
+    --texto:#e2e8f0; --texto-muted:#64748b; --borda:#1e2d4a;
+  }
+  body {
+    background: var(--bg); color: var(--texto);
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    padding: 2rem 1.25rem; line-height: 1.6;
+  }
+  .caixa { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.25rem; margin-bottom: .35rem; }
+  .sub { color: var(--texto-muted); font-size: .85rem; margin-bottom: 1.75rem; }
+  .card { background: var(--bg2); border:1px solid var(--borda); border-radius:12px; padding:1.5rem; }
+  label { display:block; font-size:.68rem; text-transform:uppercase; letter-spacing:.08em;
+          color:var(--texto-muted); font-weight:700; margin-bottom:.35rem; }
+  input, textarea {
+    width:100%; background:var(--bg3); border:1px solid var(--borda); color:var(--texto);
+    border-radius:9px; padding:.65rem .8rem; font-size:.88rem; font-family:inherit;
+    outline:none; margin-bottom:1rem;
+  }
+  input:focus, textarea:focus { border-color: var(--azul-claro); }
+  textarea { font-family: ui-monospace, Consolas, monospace; font-size:.78rem; min-height:170px; resize:vertical; }
+  button {
+    background:var(--azul); border:none; border-radius:9px; color:#fff;
+    padding:.7rem 1.4rem; font-size:.9rem; font-weight:700; font-family:inherit; cursor:pointer;
+  }
+  button:hover { background: var(--azul-claro); }
+  button:disabled { opacity:.6; cursor:default; }
+  .aviso { background:rgba(245,158,11,.09); border:1px solid rgba(245,158,11,.4);
+           border-radius:10px; padding:.85rem 1rem; font-size:.82rem; color:#fcd34d; margin-bottom:1.5rem; }
+  .ok { background:rgba(34,197,94,.09); border:1px solid rgba(34,197,94,.4);
+        border-radius:10px; padding:.85rem 1rem; font-size:.82rem; color:#86efac; margin:1rem 0; }
+  ol { margin:.5rem 0 0 1.15rem; font-size:.82rem; color:var(--texto-muted); }
+  ol li { margin-bottom:.3rem; }
+  code { background:var(--bg3); padding:.1rem .35rem; border-radius:4px; font-size:.85em; }
+  .oculto { display:none; }
+</style>
+</head>
+<body>
+<div class="caixa">
+  <h1>Trocar a senha do dashboard</h1>
+  <div class="sub">Gera o bloco <code>COFRE</code> que substitui o atual no <code>index.html</code>.</div>
+
+  <div class="aviso">
+    <b>Rode esta página localmente</b> (abrindo o arquivo direto do seu computador), nunca
+    pela internet. Ela não envia nada para lugar nenhum — tudo acontece dentro do navegador —
+    mas a senha e a chave da API passam pelos campos abaixo.
+  </div>
+
+  <div class="card">
+    <label for="sheet">ID da planilha</label>
+    <input type="text" id="sheet" placeholder="cole aqui o ID da planilha" />
+
+    <label for="apikey">Chave da API do Google</label>
+    <input type="text" id="apikey" placeholder="AIza..." />
+
+    <label for="usuario">Login</label>
+    <input type="text" id="usuario" value="Admin" />
+
+    <label for="senha">Nova senha</label>
+    <input type="text" id="senha" placeholder="digite a nova senha" />
+
+    <button id="btn">Gerar bloco COFRE</button>
+
+    <div id="resultado" class="oculto">
+      <div class="ok">
+        Pronto. Substitua o bloco <code>const COFRE = { … };</code> do <code>index.html</code>
+        por este e envie para o GitHub.
+        <ol>
+          <li>Abra o <code>index.html</code> num editor de texto.</li>
+          <li>Localize a linha que começa com <code>const COFRE = {</code>.</li>
+          <li>Apague do <code>const COFRE = {</code> até o <code>};</code> e cole o texto abaixo no lugar.</li>
+          <li>Salve, faça o commit e o push.</li>
+        </ol>
+      </div>
+      <label for="saida">Bloco gerado</label>
+      <textarea id="saida" readonly></textarea>
+      <button id="btnCopiar">Copiar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ITERACOES = 310000;
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+
+document.getElementById('btn').addEventListener('click', async () => {
+  const sheet = document.getElementById('sheet').value.trim();
+  const apikey = document.getElementById('apikey').value.trim();
+  const usuario = document.getElementById('usuario').value.trim();
+  const senha = document.getElementById('senha').value;
+  const btn = document.getElementById('btn');
+
+  if (!sheet || !apikey || !usuario || !senha) { alert('Preencha todos os campos.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Gerando…';
+  await new Promise(r => setTimeout(r, 30));
+
+  const enc = new TextEncoder();
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+
+  const material = await crypto.subtle.importKey(
+    'raw', enc.encode(usuario.toLowerCase() + '\n' + senha), 'PBKDF2', false, ['deriveKey']
+  );
+  const chave = await crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations: ITERACOES, hash:'SHA-256' },
+    material, { name:'AES-GCM', length:256 }, false, ['encrypt']
+  );
+  const ct = await crypto.subtle.encrypt(
+    { name:'AES-GCM', iv }, chave,
+    enc.encode(JSON.stringify({ SHEET_ID: sheet, GOOGLE_API_KEY: apikey }))
+  );
+
+  document.getElementById('saida').value =
+`const COFRE = {
+  v: 1,
+  it: ${ITERACOES},
+  salt: '${b64(salt)}',
+  iv: '${b64(iv)}',
+  ct: '${b64(ct)}'
+};`;
+  document.getElementById('resultado').classList.remove('oculto');
+  btn.disabled = false; btn.textContent = 'Gerar bloco COFRE';
+});
+
+document.getElementById('btnCopiar').addEventListener('click', () => {
+  const t = document.getElementById('saida');
+  t.select();
+  navigator.clipboard.writeText(t.value).then(
+    () => { document.getElementById('btnCopiar').textContent = 'Copiado'; },
+    () => { document.execCommand('copy'); }
+  );
+});
+</script>
+</body>
+</html>

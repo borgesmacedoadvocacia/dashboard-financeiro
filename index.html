@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fluxo Financeiro — DRE 2026 | Borges Macedo</title>
+<link rel="icon" type="image/png" href="favicon.png" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  * { -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b26;
+    --bg3: #1e2536;
+    --bg4: #232c42;
+    --azul: #2563eb;
+    --azul-claro: #3b82f6;
+    --verde: #22c55e;
+    --verde-fraco: rgba(34,197,94,0.13);
+    --vermelho: #ef4444;
+    --vermelho-fraco: rgba(239,68,68,0.13);
+    --amarelo: #f59e0b;
+    --amarelo-fraco: rgba(245,158,11,0.13);
+    --roxo: #a855f7;
+    --ciano: #06b6d4;
+    --texto: #e2e8f0;
+    --texto-muted: #64748b;
+    --borda: #1e2d4a;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  html { font-size: 15px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--texto);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 3rem;
+    overflow-x: hidden;
+  }
+
+  /* ===== CABEÇALHO ===== */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 1rem;
+    padding: 1rem 1.75rem;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--borda);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-logo { display: flex; align-items: center; gap: 0.75rem; }
+  .logo-img { height: 38px; width: auto; object-fit: contain; }
+  .logo-text { display: flex; flex-direction: column; line-height: 1.2; }
+  .logo-name { font-size: 0.95rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+  .logo-sub { font-size: 0.63rem; color: var(--texto-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+  .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; }
+  .header-updated { font-size: 0.72rem; color: var(--texto-muted); }
+  .btn-atualizar {
+    display: flex; align-items: center; gap: 0.4rem;
+    padding: 0.4rem 0.85rem; background: transparent;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    color: var(--texto); font-size: 0.8rem; font-weight: 500;
+    cursor: pointer; font-family: inherit; transition: background .15s, border-color .15s;
+  }
+  .btn-atualizar:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.3); }
+
+  /* ===== BARRA DE FILTROS ===== */
+  .filtros {
+    padding: 1rem 1.75rem;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--borda);
+    display: flex; flex-direction: column; gap: 0.85rem;
+  }
+  .filtros-linha { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+  .filtro-label {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--texto-muted); font-weight: 600; white-space: nowrap;
+  }
+  select.campo {
+    background: var(--bg3); border: 1px solid var(--borda); color: var(--texto);
+    border-radius: 8px; padding: 0.5rem 2rem 0.5rem 0.85rem;
+    font-size: 0.85rem; font-family: inherit; cursor: pointer; outline: none;
+    -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.6rem center;
+    transition: border-color .15s; min-width: 230px;
+  }
+  select.campo:hover, select.campo:focus { border-color: var(--azul-claro); }
+  select.campo option { background: var(--bg2); color: var(--texto); }
+  select.campo optgroup { background: var(--bg); color: var(--texto-muted); font-style: normal; }
+
+  .chips { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .chip {
+    padding: 0.35rem 0.7rem; border-radius: 999px; cursor: pointer;
+    background: var(--bg3); border: 1px solid var(--borda);
+    color: var(--texto-muted); font-size: 0.75rem; font-weight: 600;
+    font-family: inherit; transition: all .15s; user-select: none;
+  }
+  .chip:hover { border-color: var(--azul-claro); color: var(--texto); }
+  .chip.ativo { background: var(--azul); border-color: var(--azul); color: #fff; }
+  .chip.sem-dados { opacity: 0.45; }
+  .chip.parcial.ativo { background: var(--amarelo); border-color: var(--amarelo); color: #1a1200; }
+
+  .toggle-grupo { display: inline-flex; border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; }
+  .toggle-grupo button {
+    background: var(--bg3); border: none; color: var(--texto-muted);
+    padding: 0.5rem 0.85rem; font-size: 0.78rem; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .toggle-grupo button + button { border-left: 1px solid var(--borda); }
+  .toggle-grupo button.ativo { background: var(--azul); color: #fff; }
+
+  .badge-info {
+    display: inline-flex; align-items: center; gap: 0.4rem;
+    background: var(--bg3); border: 1px solid var(--borda); border-radius: 8px;
+    padding: 0.45rem 0.8rem; font-size: 0.78rem; color: var(--texto-muted);
+  }
+  .badge-info strong { color: var(--azul-claro); }
+  .badge-info.alerta { border-color: var(--amarelo); color: var(--amarelo); }
+  .badge-info.alerta strong { color: var(--amarelo); }
+
+  /* ===== LAYOUT ===== */
+  .container { max-width: 1500px; margin: 0 auto; padding: 1.5rem 1.75rem; }
+  .secao { margin-bottom: 2rem; }
+  .secao-titulo {
+    display: flex; align-items: center; gap: 0.6rem;
+    font-size: 0.95rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; margin-bottom: 0.35rem;
+  }
+  .secao-titulo::before { content: ''; width: 3px; height: 17px; background: var(--azul-claro); border-radius: 2px; }
+  .secao-sub { font-size: 0.78rem; color: var(--texto-muted); margin-bottom: 1rem; margin-left: 0.9rem; }
+
+  .card {
+    background: var(--bg2); border: 1px solid var(--borda);
+    border-radius: var(--radius); padding: 1.15rem; box-shadow: var(--shadow);
+  }
+
+  /* ===== KPIs ===== */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 0.9rem; }
+  .kpi { position: relative; overflow: hidden; }
+  .kpi::after { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background: var(--azul-claro); }
+  .kpi.verde::after { background: var(--verde); }
+  .kpi.vermelho::after { background: var(--vermelho); }
+  .kpi.amarelo::after { background: var(--amarelo); }
+  .kpi-topo { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.55rem; }
+  .kpi-nome { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--texto-muted); font-weight: 700; }
+  .kpi-pct {
+    font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 6px; white-space: nowrap;
+  }
+  .kpi-pct.verde { background: var(--verde-fraco); color: var(--verde); }
+  .kpi-pct.vermelho { background: var(--vermelho-fraco); color: var(--vermelho); }
+  .kpi-pct.amarelo { background: var(--amarelo-fraco); color: var(--amarelo); }
+  .kpi-pct.neutro { background: var(--bg3); color: var(--texto-muted); }
+  .kpi-valor { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+  .kpi-valor.neg { color: var(--vermelho); }
+  .kpi-valor.pos { color: var(--verde); }
+  .kpi-rodape { margin-top: 0.6rem; padding-top: 0.55rem; border-top: 1px solid var(--borda); font-size: 0.75rem; color: var(--texto-muted); display:flex; flex-direction:column; gap:.2rem; }
+  .kpi-rodape span b { color: var(--texto); font-weight: 600; }
+  .kpi-rodape .exc-neg { color: var(--vermelho); font-weight: 700; }
+  .kpi-rodape .exc-pos { color: var(--verde); font-weight: 700; }
+
+  /* ===== BARRA DE PROGRESSO ===== */
+  .barra-fundo { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; margin-top: .5rem; }
+  .barra-fill { height: 100%; border-radius: 3px; transition: width .4s ease; }
+
+  /* ===== TABELAS ===== */
+  .tabela-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; min-width: 720px; }
+  thead th {
+    text-align: right; padding: 0.6rem 0.7rem; font-size: 0.67rem; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--texto-muted); font-weight: 700;
+    border-bottom: 1px solid var(--borda); white-space: nowrap; background: var(--bg2);
+    position: sticky; top: 0;
+  }
+  thead th:first-child { text-align: left; }
+  tbody td { padding: 0.55rem 0.7rem; text-align: right; border-bottom: 1px solid rgba(30,45,74,0.5); white-space: nowrap; }
+  tbody td:first-child { text-align: left; white-space: normal; }
+  tbody tr.grupo { background: rgba(37,99,235,0.07); cursor: pointer; }
+  tbody tr.grupo:hover { background: rgba(37,99,235,0.14); }
+  tbody tr.grupo td { font-weight: 700; }
+  tbody tr.filho td:first-child { padding-left: 1.9rem; color: var(--texto-muted); font-size: 0.79rem; }
+  tbody tr.filho:hover { background: rgba(255,255,255,0.03); }
+  tbody tr.destaque { background: rgba(255,255,255,0.04); }
+  tbody tr.destaque td { font-weight: 800; border-top: 1px solid var(--borda); }
+  .seta { display:inline-block; width: 0.75rem; font-size:0.65rem; color: var(--texto-muted); transition: transform .15s; }
+  .seta.aberta { transform: rotate(90deg); }
+  .tag-pct { font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 5px; font-size: 0.76rem; }
+  .tag-pct.verde { background: var(--verde-fraco); color: var(--verde); }
+  .tag-pct.vermelho { background: var(--vermelho-fraco); color: var(--vermelho); }
+  .tag-pct.amarelo { background: var(--amarelo-fraco); color: var(--amarelo); }
+  .tag-pct.neutro { background: var(--bg3); color: var(--texto-muted); }
+  .val-neg { color: var(--vermelho); font-weight: 600; }
+  .val-pos { color: var(--verde); font-weight: 600; }
+  .mini-barra { display:inline-block; vertical-align:middle; height:5px; border-radius:3px; background: var(--azul-claro); min-width:2px; }
+
+  /* ===== GRÁFICOS ===== */
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(370px, 1fr)); gap: 1rem; }
+  .grafico-box { position: relative; width: 100%; }
+  .grafico-box.alto { height: 340px; }
+  .grafico-box.medio { height: 290px; }
+
+  /* ===== IMPOSTOS ===== */
+  .imposto-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.9rem; margin-bottom: 1rem; }
+  .imposto-item { background: var(--bg3); border: 1px solid var(--borda); border-radius: 10px; padding: 0.9rem; }
+  .imposto-nome { font-size: 0.67rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-muted); font-weight: 700; margin-bottom: 0.35rem; }
+  .imposto-valor { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em; }
+  .imposto-nota { font-size: 0.71rem; color: var(--texto-muted); margin-top: 0.25rem; }
+
+  /* ===== OBSERVAÇÕES ===== */
+  .obs-lista { display: flex; flex-direction: column; gap: 0.6rem; }
+  .obs {
+    display: flex; gap: 0.75rem; padding: 0.8rem 0.95rem;
+    background: var(--bg3); border-radius: 10px;
+    border-left: 3px solid var(--texto-muted);
+  }
+  .obs.critico { border-left-color: var(--vermelho); background: rgba(239,68,68,0.07); }
+  .obs.atencao { border-left-color: var(--amarelo); background: rgba(245,158,11,0.06); }
+  .obs.bom { border-left-color: var(--verde); background: rgba(34,197,94,0.06); }
+  .obs.info { border-left-color: var(--azul-claro); }
+  .obs-icone { font-size: 1rem; line-height: 1.35; flex-shrink: 0; }
+  .obs-corpo { flex: 1; min-width: 0; }
+  .obs-titulo { font-size: 0.85rem; font-weight: 700; margin-bottom: 0.15rem; }
+  .obs-texto { font-size: 0.8rem; color: var(--texto-muted); line-height: 1.5; }
+  .obs-texto b { color: var(--texto); font-weight: 600; }
+  .obs-vazio { padding: 1.5rem; text-align: center; color: var(--texto-muted); font-size: 0.85rem; }
+
+  /* ===== ESTADOS ===== */
+  .estado { padding: 3rem 1.5rem; text-align: center; color: var(--texto-muted); }
+  .spinner {
+    width: 34px; height: 34px; margin: 0 auto 1rem;
+    border: 3px solid var(--bg3); border-top-color: var(--azul-claro);
+    border-radius: 50%; animation: girar .8s linear infinite;
+  }
+  @keyframes girar { to { transform: rotate(360deg); } }
+  .erro-box {
+    background: rgba(239,68,68,0.1); border: 1px solid var(--vermelho);
+    border-radius: var(--radius); padding: 1rem; margin: 1rem 1.75rem;
+    color: #fca5a5; font-size: 0.85rem; line-height: 1.5;
+  }
+  .oculto { display: none !important; }
+
+  .rodape { text-align: center; font-size: 0.72rem; color: var(--texto-muted); padding: 1.5rem; line-height: 1.7; }
+  .rodape a { color: var(--azul-claro); text-decoration: none; }
+
+  /* ===== TELA DE LOGIN ===== */
+  .login-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    background: radial-gradient(circle at 50% 0%, #1a2338 0%, var(--bg) 62%);
+    display: flex; align-items: center; justify-content: center; padding: 1.25rem;
+  }
+  .login-caixa {
+    width: 100%; max-width: 372px;
+    background: var(--bg2); border: 1px solid var(--borda);
+    border-radius: 16px; padding: 2rem 1.75rem;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.55);
+  }
+  .login-logo { display: block; height: 46px; margin: 0 auto 1.15rem; object-fit: contain; }
+  .login-titulo { text-align: center; font-size: 1.02rem; font-weight: 700; letter-spacing: 0.02em; }
+  .login-sub {
+    text-align: center; font-size: 0.72rem; color: var(--texto-muted);
+    text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem; margin-bottom: 1.6rem;
+  }
+  .campo-grupo { margin-bottom: 0.9rem; }
+  .campo-rotulo {
+    display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--texto-muted); font-weight: 700; margin-bottom: 0.35rem;
+  }
+  .campo-texto {
+    width: 100%; background: var(--bg3); border: 1px solid var(--borda);
+    color: var(--texto); border-radius: 9px; padding: 0.68rem 0.85rem;
+    font-size: 0.92rem; font-family: inherit; outline: none; transition: border-color .15s;
+  }
+  .campo-texto:focus { border-color: var(--azul-claro); }
+  .campo-texto::placeholder { color: #47536b; }
+  .btn-entrar {
+    width: 100%; margin-top: 0.5rem; padding: 0.72rem;
+    background: var(--azul); border: none; border-radius: 9px;
+    color: #fff; font-size: 0.92rem; font-weight: 700; font-family: inherit;
+    cursor: pointer; transition: background .15s;
+  }
+  .btn-entrar:hover:not(:disabled) { background: var(--azul-claro); }
+  .btn-entrar:disabled { opacity: 0.6; cursor: default; }
+  .login-erro {
+    margin-top: 0.9rem; padding: 0.6rem 0.75rem; border-radius: 8px;
+    background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.45);
+    color: #fca5a5; font-size: 0.79rem; line-height: 1.45; text-align: center;
+  }
+  .login-rodape {
+    margin-top: 1.35rem; padding-top: 1rem; border-top: 1px solid var(--borda);
+    font-size: 0.7rem; color: var(--texto-muted); text-align: center; line-height: 1.55;
+  }
+  .btn-sair {
+    background: transparent; border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+    color: var(--texto-muted); font-size: 0.75rem; font-family: inherit;
+    padding: 0.3rem 0.6rem; cursor: pointer; transition: all .15s;
+  }
+  .btn-sair:hover { color: var(--vermelho); border-color: var(--vermelho); }
+
+  @media (max-width: 720px) {
+    html { font-size: 14px; }
+    .header, .filtros { padding: 0.85rem 1rem; }
+    .container { padding: 1.1rem 1rem; }
+    .kpi-valor { font-size: 1.4rem; }
+    select.campo { min-width: 100%; }
+    .grafico-box.alto { height: 300px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="loginOverlay">
+  <form class="login-caixa" id="loginForm" autocomplete="on">
+    <img src="logo.png" alt="Borges Macedo Advocacia" class="login-logo" onerror="this.style.display='none'" />
+    <div class="login-titulo">Fluxo Financeiro</div>
+    <div class="login-sub">Acesso restrito</div>
+
+    <div class="campo-grupo">
+      <label class="campo-rotulo" for="campoUsuario">Login</label>
+      <input class="campo-texto" type="text" id="campoUsuario" name="username"
+             autocomplete="username" placeholder="Usuário" required />
+    </div>
+    <div class="campo-grupo">
+      <label class="campo-rotulo" for="campoSenha">Senha</label>
+      <input class="campo-texto" type="password" id="campoSenha" name="password"
+             autocomplete="current-password" placeholder="••••••••" required />
+    </div>
+
+    <button type="submit" class="btn-entrar" id="btnEntrar">Entrar</button>
+    <div class="login-erro oculto" id="loginErro"></div>
+
+    <div class="login-rodape">
+      Os dados desta página são liberados pela sua senha.<br />
+      A sessão termina ao fechar a aba.
+    </div>
+  </form>
+</div>
+
+<header class="header oculto" id="cabecalho">
+  <div class="header-logo">
+    <img src="logo.png" alt="Borges Macedo Advocacia" class="logo-img" onerror="this.style.display='none'" />
+    <div class="logo-text">
+      <span class="logo-name">Fluxo Financeiro</span>
+      <span class="logo-sub">DRE 2026 · Borges Macedo Advocacia</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div style="display:flex;gap:.4rem;align-items:center">
+      <button class="btn-atualizar" id="btnAtualizar">&#10227; Atualizar</button>
+      <button class="btn-sair" id="btnSair" title="Encerrar a sessão">Sair</button>
+    </div>
+    <span class="header-updated" id="atualizadoEm">—</span>
+  </div>
+</header>
+
+<section class="filtros oculto" id="barraFiltros">
+  <div class="filtros-linha">
+    <span class="filtro-label">Período</span>
+    <select class="campo" id="selPeriodo"></select>
+    <span class="filtro-label">Comparar com</span>
+    <div class="toggle-grupo" id="toggleBase">
+      <button data-base="cheia" class="ativo">Projeção cheia</button>
+      <button data-base="proporcional">Projeção proporcional</button>
+    </div>
+    <span class="badge-info" id="badgeCobertura">—</span>
+  </div>
+  <div class="filtros-linha">
+    <span class="filtro-label">Meses</span>
+    <div class="chips" id="chipsMeses"></div>
+  </div>
+</section>
+
+<div id="erroBox" class="erro-box oculto"></div>
+
+<div id="carregando" class="estado oculto">
+  <div class="spinner"></div>
+  Carregando dados da planilha…
+</div>
+
+<main class="container oculto" id="conteudo">
+
+  <!-- KPIs -->
+  <section class="secao">
+    <div class="secao-titulo">Resumo do Período</div>
+    <div class="secao-sub" id="subResumo">—</div>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <!-- REALIZADO x PROJEÇÃO -->
+  <section class="secao">
+    <div class="secao-titulo">Realizado &times; Projeção</div>
+    <div class="secao-sub">Clique em um grupo para abrir as categorias. O <b>excedente</b> é quanto o realizado passou da projeção (valores negativos = economia).</div>
+    <div class="card">
+      <div class="tabela-wrap">
+        <table id="tabelaProjecao">
+          <thead>
+            <tr>
+              <th>Linha do DRE</th>
+              <th>Projeção</th>
+              <th>Realizado</th>
+              <th>% da Projeção</th>
+              <th>Excedente</th>
+              <th style="width:130px">Consumo</th>
+            </tr>
+          </thead>
+          <tbody id="corpoProjecao"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMPOSIÇÃO -->
+  <section class="secao">
+    <div class="secao-titulo">% Gasto por Categoria</div>
+    <div class="secao-sub" id="subComposicao">—</div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="secao-sub" style="margin:0 0 .6rem 0">Participação por grupo de despesa</div>
+        <div class="grafico-box medio"><canvas id="grafRosca"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="secao-sub" style="margin:0 0 .6rem 0">Maiores categorias do período</div>
+        <div class="grafico-box medio"><canvas id="grafCategorias"></canvas></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <div class="tabela-wrap">
+        <table id="tabelaCategorias">
+          <thead>
+            <tr>
+              <th>Categoria</th>
+              <th>Grupo</th>
+              <th>Valor</th>
+              <th>% das Saídas</th>
+              <th>% da Receita</th>
+              <th>Projeção</th>
+              <th>% da Projeção</th>
+              <th>Excedente</th>
+            </tr>
+          </thead>
+          <tbody id="corpoCategorias"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPOSTOS -->
+  <section class="secao">
+    <div class="secao-titulo">Impostos</div>
+    <div class="secao-sub" id="subImpostos">—</div>
+    <div class="card">
+      <div class="imposto-grid" id="impostoGrid"></div>
+      <div class="grafico-box medio"><canvas id="grafImpostos"></canvas></div>
+    </div>
+  </section>
+
+  <!-- EVOLUÇÃO -->
+  <section class="secao">
+    <div class="secao-titulo">Evolução Mensal</div>
+    <div class="secao-sub">Receita bruta, saídas totais e lucro líquido mês a mês. As linhas tracejadas são a projeção mensal.</div>
+    <div class="card">
+      <div class="grafico-box alto"><canvas id="grafEvolucao"></canvas></div>
+    </div>
+    <div class="grid-2" style="margin-top:1rem">
+      <div class="card">
+        <div class="secao-sub" style="margin:0 0 .6rem 0">Consumo da projeção de despesas por mês (%)</div>
+        <div class="grafico-box medio"><canvas id="grafConsumo"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="secao-sub" style="margin:0 0 .6rem 0">Saldo em caixa e balanço do mês</div>
+        <div class="grafico-box medio"><canvas id="grafSaldo"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OBSERVAÇÕES -->
+  <section class="secao">
+    <div class="secao-titulo">Pontos de Atenção</div>
+    <div class="secao-sub">Gerados automaticamente a partir dos números do período selecionado.</div>
+    <div class="obs-lista" id="listaAtencao"></div>
+  </section>
+
+  <section class="secao">
+    <div class="secao-titulo">Observações</div>
+    <div class="secao-sub">Contexto e leitura dos números — sem juízo de valor.</div>
+    <div class="obs-lista" id="listaObs"></div>
+  </section>
+
+</main>
+
+<footer class="rodape">
+  Dados lidos ao vivo da planilha <b>Fluxo Financeiro (DRE 2026)</b> · Atualização automática a cada 5 min<br />
+  <a href="#" id="linkPlanilha" target="_blank" rel="noopener">Abrir planilha no Google Sheets</a>
+</footer>
+
+<script>
+/* =========================================================================
+   CONFIGURAÇÃO
+   ========================================================================= */
+const CONFIG = {
+  // O ID da planilha e a chave da API NÃO ficam aqui em texto puro.
+  // Eles estão dentro do COFRE abaixo, cifrados com AES-256-GCM a partir do
+  // login + senha. Sem a senha correta não há como decifrar — e sem decifrar
+  // a página não sabe qual planilha ler. Não existe "pular a verificação".
+  SHEET_ID: null,
+  GOOGLE_API_KEY: null,
+  ABA_DRE: 'DRE 2026',
+  ABA_FLUXO: 'Fluxo Financeiro Anual',
+  AUTO_REFRESH_MIN: 5,
+
+  // Referências usadas na planilha (para os pontos de atenção)
+  ALIQUOTA_IMPOSTO_REF: 0.08,   // D67 = D6 * 8%
+  TAXA_BANCARIA_REF: 0.116,     // D15 = D7 * 11,6%
+
+  // Limiares dos alertas
+  LIM_ESTOURO_PCT: 105,         // acima disso a despesa é considerada estourada
+  LIM_ESTOURO_VALOR: 300,       // e o excedente precisa passar disso
+  LIM_ECONOMIA_PCT: 70,
+  LIM_CONCENTRACAO: 20,         // categoria que passa disso do total de saídas
+  LIM_RECEITA_ABAIXO: 90,
+  LIM_MARKETING_RECEITA: 25,    // marketing acima disso da receita bruta
+  LIM_FOLHA_RECEITA: 50
+};
+
+/* -------------------------------------------------------------------------
+   COFRE — {SHEET_ID, GOOGLE_API_KEY} cifrados com AES-256-GCM.
+   Chave derivada de PBKDF2-SHA256(usuário + senha, salt, 310.000 iterações).
+   O GCM é autenticado: senha errada faz a decifragem falhar, não há como
+   "aceitar" uma senha inválida. Para trocar a senha, use gerar-senha.html.
+   ------------------------------------------------------------------------- */
+const COFRE = {
+  v: 1,
+  it: 310000,
+  salt: 'QYgPV/Ck35pSQd67VIeYMQ==',
+  iv: 'sVf2gYn65fDGfhP+',
+  ct: 'R7qteQkKHHRCBAXhmFg9J9iC8Br55LB1MCz6ffpOaoBqOteqdvnEQ0SdmDPwkC5dkAn+wVM78zaA++/YHT/CfvPVeoidoWzjHYS/n4ywuxSA9s9PIhxKAS7Lb9ntVx2M7fhpXvLPw4CIaySX15Xq+d48tJBxZg0iaA31iIrJYg/baHby6ZY='
+};
+const CHAVE_SESSAO = 'bm_fluxo_sessao';
+
+const MESES = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+const GRUPOS_PRESET = [
+  { id: 'ano',   nome: 'Ano completo (Jan–Dez)',       meses: [0,1,2,3,4,5,6,7,8,9,10,11] },
+  { id: 'ytd',   nome: 'Acumulado até o mês atual',    meses: null },
+  { id: 't1',    nome: '1º Trimestre (Jan–Mar)',       meses: [0,1,2] },
+  { id: 't2',    nome: '2º Trimestre (Abr–Jun)',       meses: [3,4,5] },
+  { id: 't3',    nome: '3º Trimestre (Jul–Set)',       meses: [6,7,8] },
+  { id: 't4',    nome: '4º Trimestre (Out–Dez)',       meses: [9,10,11] },
+  { id: 's1',    nome: '1º Semestre (Jan–Jun)',        meses: [0,1,2,3,4,5] },
+  { id: 's2',    nome: '2º Semestre (Jul–Dez)',        meses: [6,7,8,9,10,11] }
+];
+
+const PALETA = ['#3b82f6','#ef4444','#f59e0b','#22c55e','#a855f7','#06b6d4','#ec4899','#84cc16','#f97316','#14b8a6','#8b5cf6','#eab308','#64748b'];
+
+/* =========================================================================
+   ESTADO
+   ========================================================================= */
+let DRE = null;          // { linhas, grupos, meta }
+let CORTE = null;        // { ultimaData, mesRef, dia, diasNoMes }
+let selecao = [];        // meses selecionados (0-11)
+let baseProjecao = 'cheia';
+let graficos = {};
+let gruposAbertos = {};
+
+/* =========================================================================
+   UTILITÁRIOS
+   ========================================================================= */
+const fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const fmtBRL0 = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const fmtNum = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function moeda(v)    { return fmtBRL.format(v || 0); }
+function moedaCurta(v){ return fmtBRL0.format(v || 0); }
+function pct(v, casas) { return (v === null || !isFinite(v)) ? '—' : fmtNum.format(v).replace(/,00$/, '') + '%'; }
+function pct1(v) { return (v === null || !isFinite(v)) ? '—' : v.toFixed(1).replace('.', ',') + '%'; }
+/** Pontos percentuais — sem o símbolo de %, que aqui seria incorreto. */
+function pp(v) { return (v === null || !isFinite(v)) ? '—' : Math.abs(v).toFixed(1).replace('.', ',') + ' p.p.'; }
+
+function norm(s) {
+  return (s === null || s === undefined ? '' : String(s))
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase().replace(/\s+/g, ' ').trim();
+}
+
+/** Converte tanto número puro quanto texto em formato brasileiro ("R$ 1.234,56", "-", "#DIV/0!"). */
+function parseNumBR(v) {
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  if (v === null || v === undefined) return 0;
+  let t = String(v).replace(/\u00a0/g, ' ').trim();
+  if (t === '' || t === '-' || t.startsWith('#')) return 0;
+  t = t.replace(/R\$/gi, '').replace(/\s/g, '');
+  if (t === '' || t === '-') return 0;
+  const negativo = t.startsWith('-') || /^\(.*\)$/.test(t);
+  t = t.replace(/[()\-+]/g, '');
+  t = t.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(t);
+  if (!isFinite(n)) return 0;
+  return negativo ? -n : n;
+}
+
+function diasNoMes(mesIdx, ano) { return new Date(ano, mesIdx + 1, 0).getDate(); }
+
+function corPorPct(p, ehDespesa) {
+  if (p === null || !isFinite(p)) return 'neutro';
+  if (ehDespesa) {
+    if (p > CONFIG.LIM_ESTOURO_PCT) return 'vermelho';
+    if (p > 90) return 'amarelo';
+    return 'verde';
+  }
+  if (p >= 100) return 'verde';
+  if (p >= 80) return 'amarelo';
+  return 'vermelho';
+}
+function corHex(classe) {
+  return { verde: '#22c55e', vermelho: '#ef4444', amarelo: '#f59e0b', neutro: '#64748b' }[classe] || '#64748b';
+}
+
+/* =========================================================================
+   LEITURA DA PLANILHA
+   ========================================================================= */
+async function buscarViaAPI() {
+  const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values:batchGet`;
+  const params = new URLSearchParams();
+  params.append('ranges', `'${CONFIG.ABA_DRE}'!A1:AH90`);
+  params.append('ranges', `'${CONFIG.ABA_FLUXO}'!B5:C5000`);
+  params.append('valueRenderOption', 'UNFORMATTED_VALUE');
+  params.append('key', CONFIG.GOOGLE_API_KEY);
+  params.append('_', Date.now());
+
+  const resp = await fetch(`${base}?${params}`, { cache: 'no-store' });
+  if (!resp.ok) throw new Error('API ' + resp.status);
+  const json = await resp.json();
+  return {
+    dre: (json.valueRanges[0] && json.valueRanges[0].values) || [],
+    fluxo: (json.valueRanges[1] && json.valueRanges[1].values) || [],
+    serialData: true
+  };
+}
+
+/** Plano B: exportação CSV pública (não precisa de chave de API). */
+async function buscarViaCSV() {
+  async function csv(aba) {
+    const url = `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(aba)}&headers=0&_=${Date.now()}`;
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error('CSV ' + r.status);
+    return parseCSV(await r.text());
+  }
+  const [dre, fluxoTudo] = await Promise.all([csv(CONFIG.ABA_DRE), csv(CONFIG.ABA_FLUXO)]);
+  // No CSV a aba de fluxo vem inteira: recorta as colunas B (data) e C (mês) a partir da linha 5
+  const fluxo = fluxoTudo.slice(4).map(l => [l[1], l[2]]);
+  return { dre, fluxo, serialData: false };
+}
+
+function parseCSV(texto) {
+  const linhas = [];
+  let linha = [], campo = '', aspas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (aspas) {
+      if (c === '"') { if (texto[i + 1] === '"') { campo += '"'; i++; } else aspas = false; }
+      else campo += c;
+    } else if (c === '"') aspas = true;
+    else if (c === ',') { linha.push(campo); campo = ''; }
+    else if (c === '\n') { linha.push(campo); linhas.push(linha); linha = []; campo = ''; }
+    else if (c !== '\r') campo += c;
+  }
+  if (campo !== '' || linha.length) { linha.push(campo); linhas.push(linha); }
+  return linhas;
+}
+
+/* =========================================================================
+   PARSER DO DRE
+   ========================================================================= */
+const ROTULOS_RODAPE = ['DISTRIBUICAO DE LUCRO', 'SALDO INICIAL', 'SALDO FINAL', 'BALANCO'];
+
+function parseDRE(grid) {
+  const cell = (r, c) => (grid[r] && grid[r][c] !== undefined ? grid[r][c] : '');
+
+  // 1) Localiza a linha de cabeçalho — a que contém "PROJEÇÃO" e os nomes dos meses
+  let linhaCab = -1, colRotulo = -1, colProj = -1, colMedia = -1, colTotal = -1;
+  const colMes = new Array(12).fill(-1);
+
+  for (let r = 0; r < Math.min(grid.length, 20); r++) {
+    const larg = (grid[r] || []).length;
+    let achouProj = -1, achouMeses = 0;
+    for (let c = 0; c < larg; c++) {
+      const v = norm(cell(r, c));
+      if (v === 'PROJECAO') achouProj = c;
+      if (MESES.some(m => norm(m) === v)) achouMeses++;
+    }
+    if (achouProj >= 0 && achouMeses >= 6) {
+      linhaCab = r; colProj = achouProj;
+      for (let c = 0; c < larg; c++) {
+        const v = norm(cell(r, c));
+        const iMes = MESES.findIndex(m => norm(m) === v);
+        if (iMes >= 0 && colMes[iMes] === -1) colMes[iMes] = c;
+        if (v === 'MEDIA MENSAL') colMedia = c;
+        if (v === 'TOTAL REAL') colTotal = c;
+        if (v === 'DRE' && colRotulo === -1) colRotulo = c;
+      }
+      break;
+    }
+  }
+  if (linhaCab === -1) throw new Error('Não encontrei o cabeçalho do DRE (linha com "PROJEÇÃO" e os meses).');
+  if (colRotulo === -1) colRotulo = Math.max(0, colProj - 2);
+
+  // 2) Percorre as linhas montando grupos, filhos e rodapé
+  const linhas = [], grupos = [], rodape = {};
+  let grupoAtual = null;
+
+  for (let r = linhaCab + 1; r < grid.length; r++) {
+    const bruto = cell(r, colRotulo);
+    const rot = String(bruto === null || bruto === undefined ? '' : bruto).trim();
+    if (!rot) continue;
+    const n = norm(rot);
+
+    const valores = colMes.map(c => (c >= 0 ? parseNumBR(cell(r, c)) : 0));
+    const proj = parseNumBR(cell(r, colProj));
+
+    const rodapeMatch = ROTULOS_RODAPE.find(x => n.startsWith(x));
+    if (rodapeMatch) {
+      rodape[rodapeMatch] = { rotulo: rot, valores, proj };
+      continue;
+    }
+
+    const prefixo = n.startsWith('(+)') ? '+' : n.startsWith('(-)') ? '-' : n.startsWith('(=)') ? '=' : null;
+
+    if (prefixo) {
+      const nomeLimpo = rot.replace(/^\s*\([+\-=]\)\s*/, '').trim();
+      let tipo;
+      if (prefixo === '+') tipo = 'receita';
+      else if (prefixo === '-') tipo = 'despesa';
+      else tipo = 'resultado';
+      if (n.indexOf('TOTAL DESPESAS') >= 0) tipo = 'total';
+
+      const g = {
+        chave: n, rotulo: rot, nome: nomeLimpo, tipo, prefixo,
+        valores, proj, filhos: [], linhaPlanilha: r + 1
+      };
+      grupos.push(g);
+      linhas.push(g);
+      grupoAtual = (tipo === 'resultado' || tipo === 'total') ? null : g;
+    } else if (grupoAtual) {
+      const f = {
+        chave: n, rotulo: rot, nome: rot, tipo: grupoAtual.tipo === 'receita' ? 'receita' : 'despesa',
+        valores, proj, grupo: grupoAtual, linhaPlanilha: r + 1
+      };
+      grupoAtual.filhos.push(f);
+      linhas.push(f);
+    }
+  }
+
+  const acha = alvo => grupos.find(g => g.chave.indexOf(alvo) >= 0) || null;
+  const meta = {
+    receitas:   acha('RECEITAS'),
+    bancarias:  acha('DESPESAS BANCARIAS'),
+    recLiquida: acha('RECEITA LIQUIDA'),
+    fixas:      acha('DESPESAS FIXAS'),
+    folha:      acha('FOLHA DE PAGAMENTO'),
+    marketing:  acha('MARKETING'),
+    variaveis:  acha('DESPESAS VARIAVEIS'),
+    totalDesp:  acha('TOTAL DESPESAS'),
+    impostos:   acha('IMPOSTOS'),
+    lucro:      acha('LUCRO LIQUIDO')
+  };
+
+  return { linhas, grupos, rodape, meta };
+}
+
+/** Valor já com o sinal normalizado: despesa sempre positiva (magnitude). */
+function valorLinha(linha, mesIdx) {
+  const v = linha.valores[mesIdx] || 0;
+  return (linha.tipo === 'despesa' || linha.tipo === 'total') ? Math.abs(v) : v;
+}
+function projLinha(linha) {
+  const v = linha.proj || 0;
+  return (linha.tipo === 'despesa' || linha.tipo === 'total') ? Math.abs(v) : v;
+}
+
+/* =========================================================================
+   CORTE DE DADOS (até que dia a planilha está lançada)
+   ========================================================================= */
+function detectarCorte(fluxo, serialData) {
+  let maxTs = null;
+  for (const l of fluxo) {
+    if (!l || l[0] === undefined || l[0] === null || l[0] === '') continue;
+    let d = null;
+    if (serialData && typeof l[0] === 'number') {
+      // Serial do Google Sheets: dia 0 = 30/12/1899
+      d = new Date(Date.UTC(1899, 11, 30) + l[0] * 86400000);
+    } else {
+      const m = String(l[0]).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (m) d = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1]));
+    }
+    if (d && !isNaN(d) && (maxTs === null || d.getTime() > maxTs)) maxTs = d.getTime();
+  }
+  if (maxTs === null) return { ultimaData: null, mesRef: 11, dia: 31, diasNoMes: 31, ano: new Date().getFullYear() };
+
+  const d = new Date(maxTs);
+  const ano = d.getUTCFullYear(), mes = d.getUTCMonth(), dia = d.getUTCDate();
+  return { ultimaData: d, mesRef: mes, dia, diasNoMes: diasNoMes(mes, ano), ano };
+}
+
+/** Fração do mês já decorrida — 1 para meses fechados, 0 para meses futuros. */
+function fracaoMes(mesIdx) {
+  if (!CORTE || CORTE.mesRef === null) return 1;
+  if (mesIdx < CORTE.mesRef) return 1;
+  if (mesIdx > CORTE.mesRef) return 0;
+  return CORTE.dia / CORTE.diasNoMes;
+}
+function mesTemDados(mesIdx) { return CORTE ? mesIdx <= CORTE.mesRef : true; }
+function mesParcial(mesIdx)  { return CORTE ? (mesIdx === CORTE.mesRef && CORTE.dia < CORTE.diasNoMes) : false; }
+
+/* =========================================================================
+   AGREGAÇÃO
+   ========================================================================= */
+function agregar(linha, sel) {
+  const realizado = sel.reduce((s, m) => s + valorLinha(linha, m), 0);
+  const unit = projLinha(linha);
+  const projCheia = unit * sel.length;
+  const projProp = unit * sel.reduce((s, m) => s + fracaoMes(m), 0);
+  const projecao = baseProjecao === 'proporcional' ? projProp : projCheia;
+  const percentual = projecao > 0 ? (realizado / projecao) * 100 : null;
+  const excedente = projecao > 0 ? realizado - projecao : null;
+  return { realizado, projecao, projCheia, projProp, percentual, excedente, unit };
+}
+
+function mesesSelecionados() { return selecao.slice().sort((a, b) => a - b); }
+
+function rotuloPeriodo() {
+  const sel = mesesSelecionados();
+  if (!sel.length) return 'Nenhum mês selecionado';
+  if (sel.length === 1) return MESES[sel[0]].charAt(0) + MESES[sel[0]].slice(1).toLowerCase();
+  const contiguo = sel.every((m, i) => i === 0 || m === sel[i - 1] + 1);
+  if (contiguo) return `${MESES_CURTO[sel[0]]} – ${MESES_CURTO[sel[sel.length - 1]]}`;
+  return sel.map(m => MESES_CURTO[m]).join(', ');
+}
+
+/* =========================================================================
+   RENDER — KPIs
+   ========================================================================= */
+function cardKPI(o) {
+  const classePct = o.semProjecao ? 'neutro' : corPorPct(o.percentual, o.ehDespesa);
+  const classeCard = o.corCard || classePct;
+  const sinalValor = o.corValor === 'auto' ? (o.valor < 0 ? 'neg' : (o.valor > 0 ? 'pos' : '')) : (o.corValor || '');
+  const larg = o.percentual === null ? 0 : Math.max(2, Math.min(100, o.percentual));
+
+  let rodape = '';
+  if (!o.semProjecao) {
+    const exc = o.excedente;
+    let txtExc = '';
+    if (exc !== null) {
+      if (o.ehDespesa) {
+        txtExc = exc > 0
+          ? `<span class="exc-neg">+ ${moeda(exc)} acima da projeção</span>`
+          : `<span class="exc-pos">${moeda(Math.abs(exc))} abaixo da projeção</span>`;
+      } else {
+        txtExc = exc >= 0
+          ? `<span class="exc-pos">+ ${moeda(exc)} acima da projeção</span>`
+          : `<span class="exc-neg">${moeda(Math.abs(exc))} abaixo da projeção</span>`;
+      }
+    }
+    rodape = `<div class="kpi-rodape">
+        <span>Projeção: <b>${moeda(o.projecao)}</b></span>
+        ${txtExc ? `<span>${txtExc}</span>` : ''}
+      </div>`;
+  } else if (o.notaRodape) {
+    rodape = `<div class="kpi-rodape"><span>${o.notaRodape}</span></div>`;
+  }
+
+  return `<div class="card kpi ${classeCard}">
+      <div class="kpi-topo">
+        <span class="kpi-nome">${o.nome}</span>
+        ${o.semProjecao
+          ? (o.badge ? `<span class="kpi-pct ${o.badgeCor || 'neutro'}">${o.badge}</span>` : '')
+          : `<span class="kpi-pct ${classePct}">${pct1(o.percentual)}</span>`}
+      </div>
+      <div class="kpi-valor ${sinalValor}">${moeda(o.valor)}</div>
+      ${o.semProjecao ? '' : `<div class="barra-fundo"><div class="barra-fill" style="width:${larg}%;background:${corHex(classePct)}"></div></div>`}
+      ${rodape}
+    </div>`;
+}
+
+function renderKPIs(sel) {
+  const M = DRE.meta;
+  const rec   = M.receitas   ? agregar(M.receitas, sel)   : null;
+  const banc  = M.bancarias  ? agregar(M.bancarias, sel)  : null;
+  const recLq = M.recLiquida ? agregar(M.recLiquida, sel) : null;
+  const desp  = M.totalDesp  ? agregar(M.totalDesp, sel)  : null;
+  const imp   = M.impostos   ? agregar(M.impostos, sel)   : null;
+  const lucro = M.lucro      ? agregar(M.lucro, sel)      : null;
+
+  const saidas = (desp ? desp.realizado : 0) + (banc ? banc.realizado : 0);
+
+  // Saldo em caixa: início do primeiro mês, fim do último mês com dados
+  const rSaldoIni = DRE.rodape['SALDO INICIAL'];
+  const rSaldoFim = DRE.rodape['SALDO FINAL'];
+  const comDados = sel.filter(mesTemDados);
+  const saldoIni = rSaldoIni && sel.length ? parseNumBR(rSaldoIni.valores[sel[0]]) : 0;
+  const saldoFim = rSaldoFim && comDados.length ? parseNumBR(rSaldoFim.valores[comDados[comDados.length - 1]]) : 0;
+  const balanco = saldoFim - saldoIni;
+
+  const cards = [];
+
+  cards.push(cardKPI({
+    nome: 'Receita Bruta', valor: rec.realizado, projecao: rec.projecao,
+    percentual: rec.percentual, excedente: rec.excedente, ehDespesa: false
+  }));
+
+  cards.push(cardKPI({
+    nome: 'Receita Líquida', valor: recLq.realizado, projecao: recLq.projecao,
+    percentual: recLq.percentual, excedente: recLq.excedente, ehDespesa: false,
+    notaRodape: `Já descontadas as taxas bancárias`
+  }));
+
+  cards.push(cardKPI({
+    nome: 'Total de Despesas', valor: desp.realizado, projecao: desp.projecao,
+    percentual: desp.percentual, excedente: desp.excedente, ehDespesa: true
+  }));
+
+  cards.push(cardKPI({
+    nome: 'Impostos', valor: imp.realizado, projecao: imp.projecao,
+    percentual: imp.percentual, excedente: imp.excedente, ehDespesa: true
+  }));
+
+  cards.push(cardKPI({
+    nome: 'Lucro Líquido', valor: lucro.realizado, projecao: lucro.projecao,
+    percentual: lucro.percentual, excedente: lucro.excedente, ehDespesa: false,
+    corValor: 'auto', corCard: lucro.realizado < 0 ? 'vermelho' : 'verde'
+  }));
+
+  const margem = rec.realizado > 0 ? (lucro.realizado / rec.realizado) * 100 : null;
+  cards.push(cardKPI({
+    nome: 'Saldo em Caixa (fim do período)', valor: saldoFim, semProjecao: true,
+    corValor: 'auto', corCard: balanco < 0 ? 'amarelo' : 'verde',
+    badge: (balanco >= 0 ? '+' : '') + moedaCurta(balanco), badgeCor: balanco >= 0 ? 'verde' : 'vermelho',
+    notaRodape: `Saldo inicial: <b style="color:var(--texto)">${moeda(saldoIni)}</b><br>Balanço do período: <b style="color:${balanco >= 0 ? 'var(--verde)' : 'var(--vermelho)'}">${(balanco >= 0 ? '+ ' : '− ') + moeda(Math.abs(balanco))}</b> · Margem líquida: <b style="color:var(--texto)">${pct1(margem)}</b>`
+  }));
+
+  document.getElementById('kpis').innerHTML = cards.join('');
+
+  const baseTxt = baseProjecao === 'proporcional'
+    ? 'projeção proporcional aos dias decorridos'
+    : 'projeção cheia (mensal × nº de meses)';
+  document.getElementById('subResumo').innerHTML =
+    `<b>${rotuloPeriodo()}</b> · ${sel.length} ${sel.length === 1 ? 'mês' : 'meses'} · comparado com a ${baseTxt} · saídas totais no período: <b>${moeda(saidas)}</b>`;
+
+  return { rec, banc, recLq, desp, imp, lucro, saidas, saldoIni, saldoFim, balanco, margem };
+}
+
+/* =========================================================================
+   RENDER — TABELA REALIZADO x PROJEÇÃO
+   ========================================================================= */
+function celulaPct(p, ehDespesa) {
+  if (p === null) return '<span class="tag-pct neutro">sem projeção</span>';
+  return `<span class="tag-pct ${corPorPct(p, ehDespesa)}">${pct1(p)}</span>`;
+}
+function celulaExcedente(exc, ehDespesa) {
+  if (exc === null) return '<span style="color:var(--texto-muted)">—</span>';
+  if (Math.abs(exc) < 0.005) return '<span style="color:var(--texto-muted)">—</span>';
+  const ruim = ehDespesa ? exc > 0 : exc < 0;
+  const sinal = exc > 0 ? '+ ' : '− ';
+  return `<span class="${ruim ? 'val-neg' : 'val-pos'}">${sinal}${moeda(Math.abs(exc))}</span>`;
+}
+function celulaBarra(p, ehDespesa) {
+  if (p === null) return '';
+  const largura = Math.max(2, Math.min(100, p));
+  return `<div class="barra-fundo" style="margin:0"><div class="barra-fill" style="width:${largura}%;background:${corHex(corPorPct(p, ehDespesa))}"></div></div>`;
+}
+
+function renderTabelaProjecao(sel) {
+  const linhas = [];
+  for (const g of DRE.grupos) {
+    const a = agregar(g, sel);
+    const ehDespesa = g.tipo === 'despesa' || g.tipo === 'total';
+    const temFilhos = g.filhos.length > 0;
+    const aberto = !!gruposAbertos[g.chave];
+    const classeExtra = (g.tipo === 'resultado' || g.tipo === 'total') ? 'destaque' : 'grupo';
+
+    linhas.push(`<tr class="${classeExtra}" data-grupo="${encodeURIComponent(g.chave)}">
+        <td>${temFilhos ? `<span class="seta ${aberto ? 'aberta' : ''}">&#9656;</span>` : '<span class="seta"></span>'}${g.rotulo}</td>
+        <td>${a.projecao > 0 ? moeda(a.projecao) : '—'}</td>
+        <td>${moeda(a.realizado)}</td>
+        <td>${celulaPct(a.percentual, ehDespesa)}</td>
+        <td>${celulaExcedente(a.excedente, ehDespesa)}</td>
+        <td>${celulaBarra(a.percentual, ehDespesa)}</td>
+      </tr>`);
+
+    if (temFilhos && aberto) {
+      const filhosOrd = g.filhos
+        .map(f => ({ f, a: agregar(f, sel) }))
+        .sort((x, y) => y.a.realizado - x.a.realizado);
+      for (const { f, a: af } of filhosOrd) {
+        if (af.realizado === 0 && af.projecao === 0) continue;
+        linhas.push(`<tr class="filho">
+            <td>${f.rotulo}</td>
+            <td>${af.projecao > 0 ? moeda(af.projecao) : '—'}</td>
+            <td>${moeda(af.realizado)}</td>
+            <td>${celulaPct(af.percentual, ehDespesa)}</td>
+            <td>${celulaExcedente(af.excedente, ehDespesa)}</td>
+            <td>${celulaBarra(af.percentual, ehDespesa)}</td>
+          </tr>`);
+      }
+    }
+  }
+  const corpo = document.getElementById('corpoProjecao');
+  corpo.innerHTML = linhas.join('');
+  corpo.querySelectorAll('tr[data-grupo]').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const c = decodeURIComponent(tr.dataset.grupo);
+      gruposAbertos[c] = !gruposAbertos[c];
+      renderTabelaProjecao(mesesSelecionados());
+    });
+  });
+}
+
+/* =========================================================================
+   RENDER — COMPOSIÇÃO / % POR CATEGORIA
+   ========================================================================= */
+function coletarCategorias(sel) {
+  const itens = [];
+  for (const g of DRE.grupos) {
+    if (g.tipo !== 'despesa') continue;
+    if (g.filhos.length === 0) {
+      const a = agregar(g, sel);
+      if (a.realizado !== 0 || a.projecao !== 0) itens.push({ nome: g.nome, grupo: g.nome, a });
+    } else {
+      for (const f of g.filhos) {
+        const a = agregar(f, sel);
+        if (a.realizado !== 0 || a.projecao !== 0) itens.push({ nome: f.nome, grupo: g.nome, a });
+      }
+    }
+  }
+  return itens.sort((x, y) => y.a.realizado - x.a.realizado);
+}
+
+function renderComposicao(sel, tot) {
+  const itens = coletarCategorias(sel);
+  const totalSaidas = tot.saidas;
+  const receita = tot.rec.realizado;
+
+  document.getElementById('subComposicao').innerHTML =
+    `Base de cálculo: <b>saídas totais do período = ${moeda(totalSaidas)}</b> (total de despesas do DRE + despesas bancárias). A coluna “% da Receita” usa a receita bruta de <b>${moeda(receita)}</b>.`;
+
+  const corpo = itens.map(it => {
+    const pSaidas = totalSaidas > 0 ? (it.a.realizado / totalSaidas) * 100 : null;
+    const pRec = receita > 0 ? (it.a.realizado / receita) * 100 : null;
+    return `<tr>
+        <td>${it.nome}</td>
+        <td style="text-align:left;color:var(--texto-muted);font-size:.78rem">${it.grupo}</td>
+        <td>${moeda(it.a.realizado)}</td>
+        <td><span class="tag-pct ${pSaidas > CONFIG.LIM_CONCENTRACAO ? 'amarelo' : 'neutro'}">${pct1(pSaidas)}</span></td>
+        <td style="color:var(--texto-muted)">${pct1(pRec)}</td>
+        <td>${it.a.projecao > 0 ? moeda(it.a.projecao) : '—'}</td>
+        <td>${celulaPct(it.a.percentual, true)}</td>
+        <td>${celulaExcedente(it.a.excedente, true)}</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('corpoCategorias').innerHTML = corpo ||
+    '<tr><td colspan="8" style="text-align:center;color:var(--texto-muted);padding:1.5rem">Nenhum lançamento no período selecionado.</td></tr>';
+
+  // Rosca por grupo de despesa
+  const gruposDesp = DRE.grupos.filter(g => g.tipo === 'despesa')
+    .map(g => ({ nome: g.nome, valor: agregar(g, sel).realizado }))
+    .filter(x => x.valor > 0)
+    .sort((a, b) => b.valor - a.valor);
+
+  desenhar('grafRosca', {
+    type: 'doughnut',
+    data: {
+      labels: gruposDesp.map(g => g.nome),
+      datasets: [{
+        data: gruposDesp.map(g => g.valor),
+        backgroundColor: gruposDesp.map((_, i) => PALETA[i % PALETA.length]),
+        borderColor: '#161b26', borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, cutout: '58%',
+      plugins: {
+        legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 11, padding: 8 } },
+        tooltip: { callbacks: { label: c => {
+          const p = totalSaidas > 0 ? (c.parsed / totalSaidas) * 100 : 0;
+          return ` ${c.label}: ${moeda(c.parsed)} (${pct1(p)} das saídas)`;
+        } } }
+      }
+    }
+  });
+
+  // Barras das maiores categorias
+  const top = itens.filter(i => i.a.realizado > 0).slice(0, 12);
+  desenhar('grafCategorias', {
+    type: 'bar',
+    data: {
+      labels: top.map(i => i.nome.length > 30 ? i.nome.slice(0, 29) + '…' : i.nome),
+      datasets: [{
+        label: '% das saídas',
+        data: top.map(i => totalSaidas > 0 ? (i.a.realizado / totalSaidas) * 100 : 0),
+        backgroundColor: top.map(i => corHex(corPorPct(i.a.percentual, true))),
+        borderRadius: 4, barPercentage: 0.82
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => {
+          const it = top[c.dataIndex];
+          const partes = [` ${pct1(c.parsed.x)} das saídas · ${moeda(it.a.realizado)}`];
+          if (it.a.percentual !== null) partes.push(` ${pct1(it.a.percentual)} da projeção de ${moeda(it.a.projecao)}`);
+          return partes;
+        } } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 }, callback: v => v + '%' }, grid: { color: 'rgba(30,45,74,0.5)' } },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+/* =========================================================================
+   RENDER — IMPOSTOS
+   ========================================================================= */
+function renderImpostos(sel, tot) {
+  const imp = tot.imp, rec = tot.rec, recLq = tot.recLq;
+  const sobreBruta = rec.realizado > 0 ? (imp.realizado / rec.realizado) * 100 : null;
+  const sobreLiquida = recLq.realizado > 0 ? (imp.realizado / recLq.realizado) * 100 : null;
+  const sobreSaidas = tot.saidas > 0 ? (imp.realizado / tot.saidas) * 100 : null;
+  const aliqRef = CONFIG.ALIQUOTA_IMPOSTO_REF * 100;
+  const desvio = sobreBruta === null ? null : sobreBruta - aliqRef;
+
+  const classeDesvio = desvio === null ? 'neutro' : (Math.abs(desvio) <= 1.5 ? 'verde' : (desvio > 0 ? 'vermelho' : 'amarelo'));
+
+  document.getElementById('subImpostos').innerHTML =
+    `Base de referência da planilha: <b>${pct1(aliqRef)} da receita bruta</b> (fórmula da coluna Projeção). O realizado vem da categoria <b>IMPOSTOS PAGOS</b> do fluxo.`;
+
+  document.getElementById('impostoGrid').innerHTML = `
+    <div class="imposto-item">
+      <div class="imposto-nome">Imposto pago no período</div>
+      <div class="imposto-valor">${moeda(imp.realizado)}</div>
+      <div class="imposto-nota">Projetado: ${moeda(imp.projecao)}</div>
+    </div>
+    <div class="imposto-item">
+      <div class="imposto-nome">% sobre a receita bruta</div>
+      <div class="imposto-valor" style="color:${corHex(classeDesvio)}">${pct1(sobreBruta)}</div>
+      <div class="imposto-nota">Referência: ${pct1(aliqRef)}${desvio === null ? '' : ` · ${desvio > 0 ? 'acima' : 'abaixo'} em ${pp(desvio)}`}</div>
+    </div>
+    <div class="imposto-item">
+      <div class="imposto-nome">% sobre a receita líquida</div>
+      <div class="imposto-valor">${pct1(sobreLiquida)}</div>
+      <div class="imposto-nota">Receita líquida: ${moeda(recLq.realizado)}</div>
+    </div>
+    <div class="imposto-item">
+      <div class="imposto-nome">% sobre as saídas totais</div>
+      <div class="imposto-valor">${pct1(sobreSaidas)}</div>
+      <div class="imposto-nota">Saídas do período: ${moeda(tot.saidas)}</div>
+    </div>
+    <div class="imposto-item">
+      <div class="imposto-nome">${imp.excedente !== null && imp.excedente > 0 ? 'Acima do projetado' : 'Abaixo do projetado'}</div>
+      <div class="imposto-valor" style="color:${imp.excedente !== null && imp.excedente > 0 ? 'var(--vermelho)' : 'var(--verde)'}">${imp.excedente === null ? '—' : moeda(Math.abs(imp.excedente))}</div>
+      <div class="imposto-nota">${imp.percentual === null ? '—' : pct1(imp.percentual) + ' da projeção'}</div>
+    </div>`;
+
+  // Série mensal do % de imposto
+  const M = DRE.meta;
+  const meses = MESES.map((_, i) => i).filter(mesTemDados);
+  const serieP = meses.map(i => {
+    const r = valorLinha(M.receitas, i);
+    return r > 0 ? (valorLinha(M.impostos, i) / r) * 100 : 0;
+  });
+  const serieV = meses.map(i => valorLinha(M.impostos, i));
+
+  desenhar('grafImpostos', {
+    type: 'bar',
+    data: {
+      labels: meses.map(i => MESES_CURTO[i] + (mesParcial(i) ? '*' : '')),
+      datasets: [
+        {
+          type: 'bar', label: 'Imposto pago (R$)', data: serieV, yAxisID: 'y',
+          backgroundColor: meses.map(i => sel.includes(i) ? '#3b82f6' : 'rgba(59,130,246,0.28)'),
+          borderRadius: 4
+        },
+        {
+          type: 'line', label: '% da receita bruta', data: serieP, yAxisID: 'y1',
+          borderColor: '#f59e0b', backgroundColor: '#f59e0b', tension: 0.3,
+          pointRadius: 3, borderWidth: 2
+        },
+        {
+          type: 'line', label: `Referência ${pct1(aliqRef)}`, data: meses.map(() => aliqRef), yAxisID: 'y1',
+          borderColor: 'rgba(148,163,184,0.6)', borderDash: [5, 4], pointRadius: 0, borderWidth: 1.5
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12, padding: 10 } },
+        tooltip: { callbacks: { label: c => c.dataset.yAxisID === 'y1' ? ` ${c.dataset.label}: ${pct1(c.parsed.y)}` : ` ${c.dataset.label}: ${moeda(c.parsed.y)}` } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
+        y: { position: 'left', ticks: { color: '#64748b', font: { size: 10 }, callback: v => moedaCurta(v) }, grid: { color: 'rgba(30,45,74,0.5)' } },
+        y1: { position: 'right', ticks: { color: '#f59e0b', font: { size: 10 }, callback: v => v.toFixed(0) + '%' }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+/* =========================================================================
+   RENDER — EVOLUÇÃO MENSAL
+   ========================================================================= */
+function renderEvolucao(sel) {
+  const M = DRE.meta;
+  const idx = MESES.map((_, i) => i);
+  const labels = idx.map(i => MESES_CURTO[i] + (mesParcial(i) ? '*' : ''));
+
+  const receita = idx.map(i => valorLinha(M.receitas, i));
+  const saidas = idx.map(i => valorLinha(M.totalDesp, i) + valorLinha(M.bancarias, i));
+  const lucro = idx.map(i => valorLinha(M.lucro, i));
+  const projRec = projLinha(M.receitas);
+  const projSai = projLinha(M.totalDesp) + projLinha(M.bancarias);
+
+  const destaque = i => sel.includes(i) ? 1 : 0.3;
+
+  desenhar('grafEvolucao', {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Receita bruta', data: receita, backgroundColor: idx.map(i => `rgba(34,197,94,${destaque(i)})`), borderRadius: 4, order: 3 },
+        { type: 'bar', label: 'Saídas totais', data: saidas, backgroundColor: idx.map(i => `rgba(239,68,68,${destaque(i)})`), borderRadius: 4, order: 3 },
+        { type: 'line', label: 'Lucro líquido', data: lucro, borderColor: '#3b82f6', backgroundColor: '#3b82f6', tension: 0.3, pointRadius: 3.5, borderWidth: 2.5, order: 1 },
+        { type: 'line', label: 'Projeção de receita', data: idx.map(() => projRec), borderColor: 'rgba(34,197,94,0.65)', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5, order: 2 },
+        { type: 'line', label: 'Projeção de saídas', data: idx.map(() => projSai), borderColor: 'rgba(239,68,68,0.65)', borderDash: [6, 4], pointRadius: 0, borderWidth: 1.5, order: 2 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12, padding: 10 } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${moeda(c.parsed.y)}` } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#64748b', font: { size: 10 }, callback: v => moedaCurta(v) }, grid: { color: 'rgba(30,45,74,0.5)' } }
+      }
+    }
+  });
+
+  // Consumo da projeção de despesas, mês a mês
+  const consumo = idx.map(i => {
+    if (!mesTemDados(i)) return null;
+    const base = baseProjecao === 'proporcional' ? projLinha(M.totalDesp) * fracaoMes(i) : projLinha(M.totalDesp);
+    return base > 0 ? (valorLinha(M.totalDesp, i) / base) * 100 : null;
+  });
+  desenhar('grafConsumo', {
+    type: 'bar',
+    data: {
+      labels, datasets: [{
+        label: '% da projeção consumida', data: consumo,
+        backgroundColor: consumo.map(v => v === null ? '#334155' : corHex(corPorPct(v, true))),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${pct1(c.parsed.y)} da projeção · ${moeda(valorLinha(M.totalDesp, c.dataIndex))}` } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#64748b', font: { size: 10 }, callback: v => v + '%' }, grid: { color: 'rgba(30,45,74,0.5)' } }
+      }
+    }
+  });
+
+  // Saldo e balanço
+  const rSaldoFim = DRE.rodape['SALDO FINAL'], rBalanco = DRE.rodape['BALANCO'];
+  const saldos = idx.map(i => mesTemDados(i) && rSaldoFim ? parseNumBR(rSaldoFim.valores[i]) : null);
+  const balancos = idx.map(i => mesTemDados(i) && rBalanco ? parseNumBR(rBalanco.valores[i]) : null);
+
+  desenhar('grafSaldo', {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Balanço do mês', data: balancos, backgroundColor: balancos.map(v => v === null ? '#334155' : (v >= 0 ? 'rgba(34,197,94,.75)' : 'rgba(239,68,68,.75)')), borderRadius: 4, yAxisID: 'y' },
+        { type: 'line', label: 'Saldo em caixa', data: saldos, borderColor: '#06b6d4', backgroundColor: '#06b6d4', tension: 0.3, pointRadius: 3, borderWidth: 2.5, yAxisID: 'y' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12, padding: 10 } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${moeda(c.parsed.y)}` } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#64748b', font: { size: 10 }, callback: v => moedaCurta(v) }, grid: { color: 'rgba(30,45,74,0.5)' } }
+      }
+    }
+  });
+}
+
+function desenhar(id, cfg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (graficos[id]) graficos[id].destroy();
+  graficos[id] = new Chart(el.getContext('2d'), cfg);
+}
+
+/* =========================================================================
+   OBSERVAÇÕES E PONTOS DE ATENÇÃO
+   ========================================================================= */
+function bloco(o) {
+  return `<div class="obs ${o.nivel}">
+      <div class="obs-icone">${o.icone}</div>
+      <div class="obs-corpo">
+        <div class="obs-titulo">${o.titulo}</div>
+        <div class="obs-texto">${o.texto}</div>
+      </div>
+    </div>`;
+}
+
+function renderAnalises(sel, tot) {
+  const atencao = [], obs = [];
+  const M = DRE.meta;
+  const cats = coletarCategorias(sel);
+
+  /* ---------- PONTOS DE ATENÇÃO ---------- */
+
+  // 1. Mês parcial dentro da seleção
+  const parciais = sel.filter(mesParcial);
+  if (parciais.length && CORTE.ultimaData) {
+    const nomes = parciais.map(i => MESES[i].charAt(0) + MESES[i].slice(1).toLowerCase()).join(', ');
+    const frac = (CORTE.dia / CORTE.diasNoMes) * 100;
+    atencao.push({
+      nivel: 'atencao', icone: '&#9203;', titulo: `Período com mês em aberto: ${nomes}`,
+      texto: `A planilha está lançada até <b>${CORTE.ultimaData.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</b>, ou seja, <b>${CORTE.dia} de ${CORTE.diasNoMes} dias (${pct1(frac)})</b> do mês. Os dois modos de comparação distorcem em direções opostas neste caso: a <b>projeção cheia</b> subestima os percentuais de receita (o faturamento do mês ainda não entrou todo), enquanto a <b>projeção proporcional</b> superestima os de despesa — folha, aluguel e mensalidades são pagos de uma vez no início do mês, não diluídos dia a dia. Para decisão, o mês fechado anterior é a base mais confiável.`
+    });
+  }
+
+  // 2. Meses futuros sem lançamento na seleção
+  const semDados = sel.filter(i => !mesTemDados(i));
+  if (semDados.length) {
+    atencao.push({
+      nivel: 'atencao', icone: '&#128197;', titulo: `${semDados.length} ${semDados.length === 1 ? 'mês sem lançamentos' : 'meses sem lançamentos'} na seleção`,
+      texto: `${semDados.map(i => MESES_CURTO[i]).join(', ')} ainda não ${semDados.length === 1 ? 'tem' : 'têm'} movimentação. Eles entram com valor zero no realizado, mas somam projeção — o que puxa todos os percentuais para baixo.`
+    });
+  }
+
+  // 3. Prejuízo no período
+  if (tot.lucro.realizado < 0) {
+    atencao.push({
+      nivel: 'critico', icone: '&#128308;', titulo: `Prejuízo de ${moeda(Math.abs(tot.lucro.realizado))} no período`,
+      texto: `A receita líquida de <b>${moeda(tot.recLq.realizado)}</b> não cobriu as despesas de <b>${moeda(tot.desp.realizado)}</b>. Faltaram <b>${moeda(Math.abs(tot.lucro.realizado))}</b> para o ponto de equilíbrio.`
+    });
+  }
+
+  // 4. Despesa total estourada
+  if (tot.desp.percentual !== null && tot.desp.percentual > CONFIG.LIM_ESTOURO_PCT) {
+    atencao.push({
+      nivel: 'critico', icone: '&#128200;', titulo: `Despesa total ${pct1(tot.desp.percentual)} da projeção`,
+      texto: `Foram gastos <b>${moeda(tot.desp.realizado)}</b> contra uma projeção de <b>${moeda(tot.desp.projecao)}</b> — um excedente de <b>${moeda(tot.desp.excedente)}</b>.`
+    });
+  }
+
+  // 5. Receita abaixo do projetado
+  if (tot.rec.percentual !== null && tot.rec.percentual < CONFIG.LIM_RECEITA_ABAIXO) {
+    atencao.push({
+      nivel: 'critico', icone: '&#128201;', titulo: `Receita em ${pct1(tot.rec.percentual)} da projeção`,
+      texto: `Entraram <b>${moeda(tot.rec.realizado)}</b> de uma projeção de <b>${moeda(tot.rec.projecao)}</b>. Faltam <b>${moeda(Math.abs(tot.rec.excedente))}</b> para bater a meta de faturamento do período.`
+    });
+  }
+
+  // 6. Categorias estouradas
+  const estouradas = cats
+    .filter(c => c.a.percentual !== null && c.a.percentual > CONFIG.LIM_ESTOURO_PCT && c.a.excedente > CONFIG.LIM_ESTOURO_VALOR)
+    .sort((a, b) => b.a.excedente - a.a.excedente).slice(0, 6);
+  if (estouradas.length) {
+    const soma = estouradas.reduce((s, c) => s + c.a.excedente, 0);
+    atencao.push({
+      nivel: 'critico', icone: '&#128184;', titulo: `${estouradas.length} ${estouradas.length === 1 ? 'categoria estourou' : 'categorias estouraram'} o orçamento — ${moeda(soma)} acima`,
+      texto: estouradas.map(c =>
+        `<b>${c.nome}</b>: ${moeda(c.a.realizado)} de ${moeda(c.a.projecao)} (${pct1(c.a.percentual)}) → excedente de <b>${moeda(c.a.excedente)}</b>`
+      ).join('<br>')
+    });
+  }
+
+  // 7. Gastos sem projeção definida
+  const semProj = cats.filter(c => c.a.projecao === 0 && c.a.realizado > 1000)
+    .sort((a, b) => b.a.realizado - a.a.realizado).slice(0, 6);
+  if (semProj.length) {
+    const soma = semProj.reduce((s, c) => s + c.a.realizado, 0);
+    atencao.push({
+      nivel: 'atencao', icone: '&#10067;', titulo: `${moeda(soma)} gastos em categorias sem projeção`,
+      texto: `Estas categorias têm projeção zerada na planilha, então não entram em nenhum controle de orçamento:<br>` +
+        semProj.map(c => `<b>${c.nome}</b>: ${moeda(c.a.realizado)}`).join('<br>')
+    });
+  }
+
+  // 8. Concentração de despesa
+  const concentradas = cats.filter(c => tot.saidas > 0 && (c.a.realizado / tot.saidas) * 100 > CONFIG.LIM_CONCENTRACAO);
+  for (const c of concentradas) {
+    const p = (c.a.realizado / tot.saidas) * 100;
+    atencao.push({
+      nivel: 'atencao', icone: '&#127919;', titulo: `${c.nome} concentra ${pct1(p)} das saídas`,
+      texto: `São <b>${moeda(c.a.realizado)}</b> de <b>${moeda(tot.saidas)}</b> em saídas. Concentração alta em uma única categoria aumenta o impacto de qualquer variação dela no resultado.`
+    });
+  }
+
+  // 9. Imposto fora da referência
+  const pImp = tot.rec.realizado > 0 ? (tot.imp.realizado / tot.rec.realizado) * 100 : null;
+  const aliqRef = CONFIG.ALIQUOTA_IMPOSTO_REF * 100;
+  if (pImp !== null && Math.abs(pImp - aliqRef) > 1.5) {
+    const acima = pImp > aliqRef;
+    atencao.push({
+      nivel: acima ? 'critico' : 'atencao', icone: '&#127974;',
+      titulo: `Imposto em ${pct1(pImp)} da receita (referência: ${pct1(aliqRef)})`,
+      texto: acima
+        ? `Foram pagos <b>${moeda(tot.imp.realizado)}</b> sobre uma receita de <b>${moeda(tot.rec.realizado)}</b> — <b>${pp(pImp - aliqRef)} acima</b> da alíquota usada na projeção. Vale checar se houve recolhimento de competências anteriores ou mudança de faixa do Simples.`
+        : `Foram pagos <b>${moeda(tot.imp.realizado)}</b> sobre uma receita de <b>${moeda(tot.rec.realizado)}</b> — <b>${pp(aliqRef - pImp)} abaixo</b> da referência. Se o período não está fechado, provavelmente há imposto a recolher que ainda não entrou no fluxo. <b>Provisione a diferença de ${moeda(tot.rec.realizado * CONFIG.ALIQUOTA_IMPOSTO_REF - tot.imp.realizado)}</b>.`
+    });
+  }
+
+  // 10. Taxas bancárias fora da referência
+  const hon = M.receitas ? M.receitas.filhos.find(f => f.chave.indexOf('HONORARIOS INICIAIS') >= 0) : null;
+  if (hon && tot.banc) {
+    const honVal = sel.reduce((s, m) => s + valorLinha(hon, m), 0);
+    if (honVal > 0) {
+      const pTaxa = (tot.banc.realizado / honVal) * 100;
+      const ref = CONFIG.TAXA_BANCARIA_REF * 100;
+      if (Math.abs(pTaxa - ref) > 2) {
+        atencao.push({
+          nivel: pTaxa > ref ? 'atencao' : 'info', icone: '&#127974;',
+          titulo: `Taxas bancárias em ${pct1(pTaxa)} dos honorários iniciais (referência: ${pct1(ref)})`,
+          texto: `<b>${moeda(tot.banc.realizado)}</b> de taxas sobre <b>${moeda(honVal)}</b> em honorários iniciais. A planilha projeta ${pct1(ref)} — ${pTaxa > ref ? 'o custo de adquirência está acima do previsto, vale renegociar a taxa com a operadora.' : 'está abaixo do previsto.'}`
+        });
+      }
+    }
+  }
+
+  // 11. Queima de caixa
+  if (tot.balanco < 0) {
+    atencao.push({
+      nivel: 'critico', icone: '&#128167;', titulo: `Queima de caixa de ${moeda(Math.abs(tot.balanco))} no período`,
+      texto: `O saldo saiu de <b>${moeda(tot.saldoIni)}</b> para <b>${moeda(tot.saldoFim)}</b>. Mantido esse ritmo, o caixa atual cobre aproximadamente <b>${(() => {
+        const mesesQueima = Math.abs(tot.balanco) / Math.max(1, sel.filter(mesTemDados).length);
+        return mesesQueima > 0 ? (tot.saldoFim / mesesQueima).toFixed(1).replace('.', ',') : '—';
+      })()} meses</b> de operação.`
+    });
+  }
+
+  // 12. Marketing pesado sobre a receita
+  if (M.marketing && tot.rec.realizado > 0) {
+    const mk = agregar(M.marketing, sel);
+    const p = (mk.realizado / tot.rec.realizado) * 100;
+    if (p > CONFIG.LIM_MARKETING_RECEITA) {
+      atencao.push({
+        nivel: 'atencao', icone: '&#128226;', titulo: `Marketing consome ${pct1(p)} da receita bruta`,
+        texto: `<b>${moeda(mk.realizado)}</b> investidos contra <b>${moeda(tot.rec.realizado)}</b> de receita. Acima de ${pct1(CONFIG.LIM_MARKETING_RECEITA)} o retorno por real investido merece revisão — cheque a conversão de leads no período.`
+      });
+    }
+  }
+
+  // 13. Folha pesada sobre a receita
+  if (M.folha && tot.rec.realizado > 0) {
+    const fl = agregar(M.folha, sel);
+    const p = (fl.realizado / tot.rec.realizado) * 100;
+    if (p > CONFIG.LIM_FOLHA_RECEITA) {
+      atencao.push({
+        nivel: p > 80 ? 'critico' : 'atencao', icone: '&#128101;', titulo: `Folha de pagamento em ${pct1(p)} da receita bruta`,
+        texto: `<b>${moeda(fl.realizado)}</b> de folha para <b>${moeda(tot.rec.realizado)}</b> de receita. É o maior custo fixo da estrutura e o que menos responde a corte de curto prazo.`
+      });
+    }
+  }
+
+  // 14. Distribuição de lucro com prejuízo
+  const rDist = DRE.rodape['DISTRIBUICAO DE LUCRO'];
+  if (rDist) {
+    const dist = sel.reduce((s, m) => s + Math.abs(parseNumBR(rDist.valores[m])), 0);
+    if (dist > 0 && tot.lucro.realizado < 0) {
+      atencao.push({
+        nivel: 'critico', icone: '&#9888;&#65039;', titulo: `Distribuição de ${moeda(dist)} em período com prejuízo`,
+        texto: `Houve distribuição de lucro de <b>${moeda(dist)}</b> enquanto o resultado do período foi negativo em <b>${moeda(Math.abs(tot.lucro.realizado))}</b>. Distribuir sem lucro contábil no exercício traz risco fiscal e drena o caixa.`
+      });
+    }
+  }
+
+  // 15. Despesa maior que a receita líquida
+  if (tot.desp.realizado > tot.recLq.realizado && tot.recLq.realizado > 0) {
+    const cobertura = (tot.recLq.realizado / tot.desp.realizado) * 100;
+    atencao.push({
+      nivel: 'critico', icone: '&#9878;&#65039;', titulo: `A receita líquida cobre apenas ${pct1(cobertura)} das despesas`,
+      texto: `Cada real de despesa está sendo bancado com <b>${fmtNum.format(tot.recLq.realizado / tot.desp.realizado)}</b> de receita líquida. A diferença sai do caixa acumulado.`
+    });
+  }
+
+  /* ---------- OBSERVAÇÕES ---------- */
+
+  obs.push({
+    nivel: 'info', icone: '&#128202;', titulo: `Período analisado: ${rotuloPeriodo()}`,
+    texto: `${sel.length} ${sel.length === 1 ? 'mês selecionado' : 'meses selecionados'}, sendo <b>${sel.filter(mesTemDados).length}</b> com lançamentos. Comparação feita contra a <b>${baseProjecao === 'proporcional' ? 'projeção proporcional aos dias decorridos' : 'projeção cheia (valor mensal × número de meses)'}</b>. Projeção do período: <b>${moeda(tot.desp.projecao)}</b> de despesas para <b>${moeda(tot.rec.projecao)}</b> de receita.`
+  });
+
+  obs.push({
+    nivel: 'info', icone: '&#129518;', titulo: 'Como as saídas são calculadas',
+    texto: `“Saídas totais” = <b>Total de Despesas do DRE (${moeda(tot.desp.realizado)})</b> + <b>Despesas Bancárias (${moeda(tot.banc.realizado)})</b> = <b>${moeda(tot.saidas)}</b>. As taxas bancárias ficam fora da linha “Total de Despesas” da planilha porque já são abatidas na receita líquida — por isso entram separadas aqui, para o percentual por categoria fechar em 100%.`
+  });
+
+  if (cats.length) {
+    const top3 = cats.slice(0, 3);
+    const somaTop3 = top3.reduce((s, c) => s + c.a.realizado, 0);
+    obs.push({
+      nivel: 'info', icone: '&#127942;', titulo: 'Maiores gastos do período',
+      texto: top3.map((c, i) =>
+        `${i + 1}. <b>${c.nome}</b> — ${moeda(c.a.realizado)} (${pct1(tot.saidas > 0 ? (c.a.realizado / tot.saidas) * 100 : 0)} das saídas)`
+      ).join('<br>') + `<br>Juntas somam <b>${moeda(somaTop3)}</b>, ou <b>${pct1(tot.saidas > 0 ? (somaTop3 / tot.saidas) * 100 : 0)}</b> de tudo que saiu.`
+    });
+  }
+
+  // Composição por grupo
+  const porGrupo = DRE.grupos.filter(g => g.tipo === 'despesa')
+    .map(g => ({ nome: g.nome, v: agregar(g, sel).realizado }))
+    .filter(g => g.v > 0).sort((a, b) => b.v - a.v);
+  if (porGrupo.length) {
+    obs.push({
+      nivel: 'info', icone: '&#129513;', titulo: 'Composição das saídas por grupo',
+      texto: porGrupo.map(g => `<b>${g.nome}</b>: ${moeda(g.v)} (${pct1(tot.saidas > 0 ? (g.v / tot.saidas) * 100 : 0)})`).join(' · ')
+    });
+  }
+
+  // Margem
+  if (tot.rec.realizado > 0) {
+    const margem = (tot.lucro.realizado / tot.rec.realizado) * 100;
+    const pontoEq = tot.rec.realizado > 0 && tot.recLq.realizado > 0
+      ? tot.desp.realizado / (tot.recLq.realizado / tot.rec.realizado) : null;
+    obs.push({
+      nivel: margem >= 0 ? 'bom' : 'info', icone: '&#128176;', titulo: `Margem líquida de ${pct1(margem)}`,
+      texto: `De cada <b>R$ 100,00</b> faturados, sobraram <b>${fmtNum.format(margem)}</b> depois de taxas, despesas e impostos.` +
+        (pontoEq ? ` O ponto de equilíbrio do período seria um faturamento bruto de <b>${moeda(pontoEq)}</b>.` : '')
+    });
+  }
+
+  // Economias
+  const economias = cats.filter(c => c.a.percentual !== null && c.a.percentual < CONFIG.LIM_ECONOMIA_PCT && c.a.excedente < -CONFIG.LIM_ESTOURO_VALOR)
+    .sort((a, b) => a.a.excedente - b.a.excedente).slice(0, 5);
+  if (economias.length) {
+    const soma = economias.reduce((s, c) => s + Math.abs(c.a.excedente), 0);
+    obs.push({
+      nivel: 'bom', icone: '&#9989;', titulo: `${moeda(soma)} abaixo da projeção em ${economias.length} ${economias.length === 1 ? 'categoria' : 'categorias'}`,
+      texto: economias.map(c => `<b>${c.nome}</b>: ${moeda(c.a.realizado)} de ${moeda(c.a.projecao)} (${pct1(c.a.percentual)})`).join('<br>')
+    });
+  }
+
+  // Comparativo com o melhor/pior mês do ano
+  const mesesDados = MESES.map((_, i) => i).filter(mesTemDados);
+  if (mesesDados.length > 1 && sel.length === 1) {
+    const alvo = sel[0];
+    const receitas = mesesDados.map(i => ({ i, v: valorLinha(M.receitas, i) }));
+    const media = receitas.reduce((s, r) => s + r.v, 0) / receitas.length;
+    const atual = valorLinha(M.receitas, alvo);
+    const diff = media > 0 ? ((atual / media) - 1) * 100 : 0;
+    const melhor = receitas.slice().sort((a, b) => b.v - a.v)[0];
+    obs.push({
+      nivel: 'info', icone: '&#128207;', titulo: `Receita ${diff >= 0 ? pct1(diff) + ' acima' : pct1(Math.abs(diff)) + ' abaixo'} da média do ano`,
+      texto: `<b>${moeda(atual)}</b> em ${MESES_CURTO[alvo]} contra uma média mensal de <b>${moeda(media)}</b> nos ${receitas.length} meses com lançamento. Melhor mês até aqui: <b>${MESES_CURTO[melhor.i]}</b> com ${moeda(melhor.v)}.`
+    });
+  }
+
+  // Fonte dos dados
+  if (CORTE.ultimaData) {
+    obs.push({
+      nivel: 'info', icone: '&#128193;', titulo: 'Cobertura dos dados',
+      texto: `Último lançamento na aba <b>Fluxo Financeiro Anual</b>: <b>${CORTE.ultimaData.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</b>. Meses de <b>${MESES_CURTO[0]}</b> a <b>${MESES_CURTO[Math.max(0, CORTE.mesRef - 1)]}</b> estão fechados; <b>${MESES_CURTO[CORTE.mesRef]}</b> está em andamento. Nos gráficos, o asterisco (*) marca o mês parcial.`
+    });
+  }
+
+  document.getElementById('listaAtencao').innerHTML = atencao.length
+    ? atencao.map(bloco).join('')
+    : '<div class="obs bom"><div class="obs-icone">&#9989;</div><div class="obs-corpo"><div class="obs-titulo">Nenhum ponto crítico no período</div><div class="obs-texto">Receita, despesas e impostos estão dentro das faixas esperadas em relação à projeção.</div></div></div>';
+
+  document.getElementById('listaObs').innerHTML = obs.map(bloco).join('');
+}
+
+/* =========================================================================
+   FILTROS
+   ========================================================================= */
+function montarFiltros() {
+  const sel = document.getElementById('selPeriodo');
+  const gMeses = MESES.map((m, i) =>
+    `<option value="mes:${i}">${m.charAt(0) + m.slice(1).toLowerCase()}${mesParcial(i) ? ' (em andamento)' : (!mesTemDados(i) ? ' (sem lançamentos)' : '')}</option>`
+  ).join('');
+  const gGrupos = GRUPOS_PRESET.map(g => `<option value="grupo:${g.id}">${g.nome}</option>`).join('');
+  sel.innerHTML =
+    `<optgroup label="Grupos de meses">${gGrupos}</optgroup>` +
+    `<optgroup label="Mês individual">${gMeses}</optgroup>` +
+    `<optgroup label="Livre"><option value="custom">Personalizado (use os botões de meses)</option></optgroup>`;
+
+  sel.addEventListener('change', () => {
+    const v = sel.value;
+    if (v.startsWith('mes:')) selecao = [parseInt(v.slice(4), 10)];
+    else if (v.startsWith('grupo:')) {
+      const g = GRUPOS_PRESET.find(x => x.id === v.slice(6));
+      selecao = g.meses ? g.meses.slice() : MESES.map((_, i) => i).filter(mesTemDados);
+    }
+    atualizarChips();
+    render();
+  });
+
+  const chips = document.getElementById('chipsMeses');
+  chips.innerHTML = MESES.map((m, i) =>
+    `<button class="chip${!mesTemDados(i) ? ' sem-dados' : ''}${mesParcial(i) ? ' parcial' : ''}" data-mes="${i}" title="${!mesTemDados(i) ? 'Sem lançamentos' : (mesParcial(i) ? 'Mês em andamento' : 'Mês fechado')}">${MESES_CURTO[i]}</button>`
+  ).join('');
+  chips.querySelectorAll('.chip').forEach(b => {
+    b.addEventListener('click', () => {
+      const i = parseInt(b.dataset.mes, 10);
+      const pos = selecao.indexOf(i);
+      if (pos >= 0) { if (selecao.length > 1) selecao.splice(pos, 1); }
+      else selecao.push(i);
+      document.getElementById('selPeriodo').value = 'custom';
+      sincronizarSelect();
+      atualizarChips();
+      render();
+    });
+  });
+
+  document.querySelectorAll('#toggleBase button').forEach(b => {
+    b.addEventListener('click', () => {
+      baseProjecao = b.dataset.base;
+      document.querySelectorAll('#toggleBase button').forEach(x => x.classList.toggle('ativo', x === b));
+      render();
+    });
+  });
+}
+
+/** Se a seleção atual bate com um preset, mostra o preset no dropdown. */
+function sincronizarSelect() {
+  const sel = mesesSelecionados();
+  const igual = arr => arr && arr.length === sel.length && arr.slice().sort((a, b) => a - b).every((v, i) => v === sel[i]);
+  const campo = document.getElementById('selPeriodo');
+  if (sel.length === 1) { campo.value = 'mes:' + sel[0]; return; }
+  for (const g of GRUPOS_PRESET) {
+    const meses = g.meses || MESES.map((_, i) => i).filter(mesTemDados);
+    if (igual(meses)) { campo.value = 'grupo:' + g.id; return; }
+  }
+  campo.value = 'custom';
+}
+
+function atualizarChips() {
+  document.querySelectorAll('#chipsMeses .chip').forEach(b => {
+    b.classList.toggle('ativo', selecao.includes(parseInt(b.dataset.mes, 10)));
+  });
+}
+
+/* =========================================================================
+   CICLO PRINCIPAL
+   ========================================================================= */
+function render() {
+  const sel = mesesSelecionados();
+  if (!sel.length) return;
+  const tot = renderKPIs(sel);
+  renderTabelaProjecao(sel);
+  renderComposicao(sel, tot);
+  renderImpostos(sel, tot);
+  renderEvolucao(sel);
+  renderAnalises(sel, tot);
+}
+
+async function carregarDados(primeira) {
+  const erroEl = document.getElementById('erroBox');
+  try {
+    let dados;
+    try { dados = await buscarViaAPI(); }
+    catch (e) { console.warn('API falhou, tentando CSV público:', e.message); dados = await buscarViaCSV(); }
+
+    DRE = parseDRE(dados.dre);
+    CORTE = detectarCorte(dados.fluxo, dados.serialData);
+    DRE.rodape = DRE.rodape || {};
+
+    if (primeira) {
+      selecao = [CORTE.mesRef];
+      gruposAbertos = {};
+      montarFiltros();
+      sincronizarSelect();
+      atualizarChips();
+      document.getElementById('linkPlanilha').href =
+        `https://docs.google.com/spreadsheets/d/${CONFIG.SHEET_ID}/edit`;
+    }
+
+    // Badge de cobertura
+    const badge = document.getElementById('badgeCobertura');
+    if (CORTE.ultimaData) {
+      const emAberto = CORTE.dia < CORTE.diasNoMes;
+      badge.className = 'badge-info' + (emAberto ? ' alerta' : '');
+      badge.innerHTML = emAberto
+        ? `&#9203; Lançado até <strong>${CORTE.ultimaData.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</strong> — ${MESES_CURTO[CORTE.mesRef]} em andamento (${CORTE.dia}/${CORTE.diasNoMes} dias)`
+        : `&#9989; Lançado até <strong>${CORTE.ultimaData.toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</strong>`;
+    }
+
+    document.getElementById('carregando').classList.add('oculto');
+    document.getElementById('conteudo').classList.remove('oculto');
+    erroEl.classList.add('oculto');
+    document.getElementById('atualizadoEm').textContent =
+      'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    render();
+  } catch (e) {
+    console.error(e);
+    document.getElementById('carregando').classList.add('oculto');
+    erroEl.classList.remove('oculto');
+    erroEl.innerHTML = `<b>Não foi possível carregar a planilha.</b><br>${e.message}<br>
+      Verifique se a planilha está compartilhada como <b>“qualquer pessoa com o link pode ver”</b>.
+      Nova tentativa automática em ${CONFIG.AUTO_REFRESH_MIN} min.`;
+  }
+}
+
+document.getElementById('btnAtualizar').addEventListener('click', () => carregarDados(false));
+document.addEventListener('visibilitychange', () => { if (!document.hidden && DRE) carregarDados(false); });
+setInterval(() => { if (DRE) carregarDados(false); }, CONFIG.AUTO_REFRESH_MIN * 60 * 1000);
+
+/* =========================================================================
+   AUTENTICAÇÃO
+   Não é uma "verificação" que possa ser pulada: o ID da planilha e a chave da
+   API só existem cifrados dentro do COFRE. A senha correta é o que produz a
+   chave capaz de decifrá-los. Senha errada = decifragem falha = sem dados.
+   ========================================================================= */
+const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+
+async function abrirCofre(usuario, senha) {
+  const enc = new TextEncoder();
+  const material = await crypto.subtle.importKey(
+    'raw', enc.encode(usuario.trim().toLowerCase() + '\n' + senha),
+    'PBKDF2', false, ['deriveKey']
+  );
+  const chave = await crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt: b64bytes(COFRE.salt), iterations: COFRE.it, hash: 'SHA-256' },
+    material, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+  );
+  // AES-GCM é autenticado: senha errada lança OperationError aqui.
+  const claro = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: b64bytes(COFRE.iv) }, chave, b64bytes(COFRE.ct)
+  );
+  return JSON.parse(new TextDecoder().decode(claro));
+}
+
+function entrarNoPainel(segredo, guardarSessao) {
+  CONFIG.SHEET_ID = segredo.SHEET_ID;
+  CONFIG.GOOGLE_API_KEY = segredo.GOOGLE_API_KEY;
+  if (guardarSessao) {
+    try { sessionStorage.setItem(CHAVE_SESSAO, JSON.stringify(segredo)); } catch (e) {}
+  }
+  document.getElementById('loginOverlay').classList.add('oculto');
+  document.getElementById('cabecalho').classList.remove('oculto');
+  document.getElementById('barraFiltros').classList.remove('oculto');
+  document.getElementById('carregando').classList.remove('oculto');
+  carregarDados(true);
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const btn = document.getElementById('btnEntrar');
+  const erroEl = document.getElementById('loginErro');
+  const usuario = document.getElementById('campoUsuario').value;
+  const senha = document.getElementById('campoSenha').value;
+
+  erroEl.classList.add('oculto');
+  btn.disabled = true;
+  btn.textContent = 'Verificando…';
+  // Deixa o navegador pintar o estado antes das 310 mil iterações do PBKDF2
+  await new Promise(r => setTimeout(r, 30));
+
+  try {
+    const segredo = await abrirCofre(usuario, senha);
+    btn.textContent = 'Entrando…';
+    entrarNoPainel(segredo, true);
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    erroEl.classList.remove('oculto');
+    erroEl.textContent = 'Login ou senha incorretos.';
+    document.getElementById('campoSenha').value = '';
+    document.getElementById('campoSenha').focus();
+  }
+});
+
+document.getElementById('btnSair').addEventListener('click', () => {
+  try { sessionStorage.removeItem(CHAVE_SESSAO); } catch (e) {}
+  location.reload();
+});
+
+// Retoma a sessão desta aba, se já houver
+(function iniciar() {
+  let salvo = null;
+  try { salvo = sessionStorage.getItem(CHAVE_SESSAO); } catch (e) {}
+  if (salvo) {
+    try { entrarNoPainel(JSON.parse(salvo), false); return; } catch (e) {}
+  }
+  document.getElementById('campoUsuario').focus();
+})();
+</script>
+</body>
+</html>
