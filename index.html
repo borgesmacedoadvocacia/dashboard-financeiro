@@ -2,6 +2,21 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8" />
+<script>
+/* Central BM — o acesso a este dashboard agora é pela central única.
+   Link antigo/acesso direto é remanejado para a central; dentro dela,
+   com a sessão ativa, a página abre normalmente. */
+(function () {
+  var PORTAL = 'https://borgesmacedoadvocacia.github.io/';
+  if (location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') return;
+  function ir() { try { window.top.location.replace(PORTAL); } catch (e) { location.replace(PORTAL); } }
+  if (window.self === window.top) { ir(); return; }
+  var ok = false;
+  try { ok = sessionStorage.getItem('bm_portal_auth') === '1'; } catch (e) {}
+  if (!ok) { ir(); return; }
+  document.documentElement.setAttribute('data-portal', '1');
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Fluxo Financeiro — DRE 2026 | Borges Macedo</title>
 <link rel="icon" type="image/png" href="favicon.png" />
@@ -289,6 +304,8 @@
     padding: 0.3rem 0.6rem; cursor: pointer; transition: all .15s;
   }
   .btn-sair:hover { color: var(--vermelho); border-color: var(--vermelho); }
+  /* Dentro da central o encerramento de sessão é feito pela própria central */
+  html[data-portal] .btn-sair { display: none; }
 
   @media (max-width: 720px) {
     html { font-size: 14px; }
@@ -519,9 +536,9 @@ const CONFIG = {
 const COFRE = {
   v: 1,
   it: 310000,
-  salt: 'QYgPV/Ck35pSQd67VIeYMQ==',
-  iv: 'sVf2gYn65fDGfhP+',
-  ct: 'R7qteQkKHHRCBAXhmFg9J9iC8Br55LB1MCz6ffpOaoBqOteqdvnEQ0SdmDPwkC5dkAn+wVM78zaA++/YHT/CfvPVeoidoWzjHYS/n4ywuxSA9s9PIhxKAS7Lb9ntVx2M7fhpXvLPw4CIaySX15Xq+d48tJBxZg0iaA31iIrJYg/baHby6ZY='
+  salt: 'F9ISF4pibbMvUiWBRgnPlQ==',
+  iv: '41ZDzlokR7GJTgR9',
+  ct: 'd+gb+K8aC4ekocAxwl7dYm3d83zZ4jYyPpOkdgdmwA5h1rc/lCX2tfSmyeBeN2VOoRAD3ir/FmxmkkoX+YtkoQWu/3sGBc4bjsYjEKQkiwxheYK8kJv4NmSp3kn2GhQRy/ERm8b7xjtovON8em8Pi0UVJJAhHd0jFmVQvvKW/yo2yST87Qs='
 };
 const CHAVE_SESSAO = 'bm_fluxo_sessao';
 
@@ -1763,12 +1780,18 @@ document.getElementById('btnSair').addEventListener('click', () => {
   location.reload();
 });
 
-// Retoma a sessão desta aba, se já houver
-(function iniciar() {
+// Retoma a sessão desta aba, se já houver; senão, tenta destravar com a
+// sessão da Central de Dashboards (mesma origem, credencial única).
+(async function iniciar() {
   let salvo = null;
   try { salvo = sessionStorage.getItem(CHAVE_SESSAO); } catch (e) {}
   if (salvo) {
     try { entrarNoPainel(JSON.parse(salvo), false); return; } catch (e) {}
+  }
+  let cred = null;
+  try { cred = JSON.parse(sessionStorage.getItem('bm_portal_cred') || 'null'); } catch (e) {}
+  if (cred && cred.u != null && cred.s != null) {
+    try { entrarNoPainel(await abrirCofre(cred.u, cred.s), true); return; } catch (e) {}
   }
   document.getElementById('campoUsuario').focus();
 })();
