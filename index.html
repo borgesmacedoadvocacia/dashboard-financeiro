@@ -514,8 +514,8 @@ const CONFIG = {
   AUTO_REFRESH_MIN: 5,
 
   // Referências usadas na planilha (para os pontos de atenção)
-  ALIQUOTA_IMPOSTO_REF: 0.08,   // D67 = D6 * 8%
-  TAXA_BANCARIA_REF: 0.116,     // D15 = D7 * 11,6%
+  ALIQUOTA_IMPOSTO_REF: 0.08,   // projeção de IMPOSTOS = 8% da projeção de RECEITAS
+  TAXA_BANCARIA_REF: 0.116,     // projeção de TAXAS BANCÁRIAS = 11,6% dos HONORÁRIOS INICIAIS
 
   // Limiares dos alertas
   LIM_ESTOURO_PCT: 105,         // acima disso a despesa é considerada estourada
@@ -523,8 +523,8 @@ const CONFIG = {
   LIM_ECONOMIA_PCT: 70,
   LIM_CONCENTRACAO: 20,         // categoria que passa disso do total de saídas
   LIM_RECEITA_ABAIXO: 90,
-  LIM_MARKETING_RECEITA: 25,    // marketing acima disso da receita bruta
-  LIM_FOLHA_RECEITA: 50
+  LIM_COMERCIAL_RECEITA: 40,    // Setor Comercial (equipe + mídia) acima disso da receita bruta
+  LIM_FOLHA_RECEITA: 50         // equipe (Lideranças + Processual/Operacional) acima disso da receita
 };
 
 /* -------------------------------------------------------------------------
@@ -536,11 +536,11 @@ const CONFIG = {
 const COFRE = {
   v: 1,
   it: 310000,
-  salt: 'F9ISF4pibbMvUiWBRgnPlQ==',
-  iv: '41ZDzlokR7GJTgR9',
-  ct: 'd+gb+K8aC4ekocAxwl7dYm3d83zZ4jYyPpOkdgdmwA5h1rc/lCX2tfSmyeBeN2VOoRAD3ir/FmxmkkoX+YtkoQWu/3sGBc4bjsYjEKQkiwxheYK8kJv4NmSp3kn2GhQRy/ERm8b7xjtovON8em8Pi0UVJJAhHd0jFmVQvvKW/yo2yST87Qs='
+  salt: 'q6Ic+iRXWQESZUikbT/7zQ==',
+  iv: 'gx+nRbR8wSeaSRKp',
+  ct: '8hT2P2Ct4QRfaxsbmC3RhGBTsDMHDW6oF4syARgioijs5SZ+/QGYFq4EJSu3zAt3MeuKdY+Qdcu7fvpbjSXJ/JvKm3nim0+gKZYfzUERAsutqGNOI8uR+oVgYonSCfL33YHLecre4Y5yfJIdvjoMmediLLuHLjQSNHC4ZXVGn4p0j8aWehc='
 };
-const CHAVE_SESSAO = 'bm_fluxo_sessao';
+const CHAVE_SESSAO = 'bm_fluxo_sessao_v2'; // v2: planilha nova (ago/2026) — invalida sessões da planilha antiga
 
 const MESES = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
 const MESES_CURTO = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -626,7 +626,7 @@ function corHex(classe) {
 async function buscarViaAPI() {
   const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values:batchGet`;
   const params = new URLSearchParams();
-  params.append('ranges', `'${CONFIG.ABA_DRE}'!A1:AH90`);
+  params.append('ranges', `'${CONFIG.ABA_DRE}'!A1:AH200`);
   params.append('ranges', `'${CONFIG.ABA_FLUXO}'!B5:C5000`);
   params.append('valueRenderOption', 'UNFORMATTED_VALUE');
   params.append('key', CONFIG.GOOGLE_API_KEY);
@@ -756,14 +756,18 @@ function parseDRE(grid) {
   }
 
   const acha = alvo => grupos.find(g => g.chave.indexOf(alvo) >= 0) || null;
+  // Seções da planilha (DRE 2026 reformulado): DESPESAS FIXAS E VARIÁVEIS,
+  // LIDERANÇAS, SETOR PROCESSUAL E OPERACIONAL, SETOR COMERCIAL e
+  // DESPESAS EXTRAORDINÁRIAS substituíram FOLHA/MARKETING/VARIÁVEIS.
   const meta = {
     receitas:   acha('RECEITAS'),
     bancarias:  acha('DESPESAS BANCARIAS'),
     recLiquida: acha('RECEITA LIQUIDA'),
     fixas:      acha('DESPESAS FIXAS'),
-    folha:      acha('FOLHA DE PAGAMENTO'),
-    marketing:  acha('MARKETING'),
-    variaveis:  acha('DESPESAS VARIAVEIS'),
+    liderancas: acha('LIDERANCAS'),
+    processual: acha('SETOR PROCESSUAL'),
+    comercial:  acha('SETOR COMERCIAL'),
+    extraord:   acha('DESPESAS EXTRAORDINARIAS'),
     totalDesp:  acha('TOTAL DESPESAS'),
     impostos:   acha('IMPOSTOS'),
     lucro:      acha('LUCRO LIQUIDO')
@@ -1449,26 +1453,27 @@ function renderAnalises(sel, tot) {
     });
   }
 
-  // 12. Marketing pesado sobre a receita
-  if (M.marketing && tot.rec.realizado > 0) {
-    const mk = agregar(M.marketing, sel);
+  // 12. Setor Comercial pesado sobre a receita (equipe comercial + mídia + ferramentas)
+  if (M.comercial && tot.rec.realizado > 0) {
+    const mk = agregar(M.comercial, sel);
     const p = (mk.realizado / tot.rec.realizado) * 100;
-    if (p > CONFIG.LIM_MARKETING_RECEITA) {
+    if (p > CONFIG.LIM_COMERCIAL_RECEITA) {
       atencao.push({
-        nivel: 'atencao', icone: '&#128226;', titulo: `Marketing consome ${pct1(p)} da receita bruta`,
-        texto: `<b>${moeda(mk.realizado)}</b> investidos contra <b>${moeda(tot.rec.realizado)}</b> de receita. Acima de ${pct1(CONFIG.LIM_MARKETING_RECEITA)} o retorno por real investido merece revisão — cheque a conversão de leads no período.`
+        nivel: 'atencao', icone: '&#128226;', titulo: `Setor Comercial consome ${pct1(p)} da receita bruta`,
+        texto: `<b>${moeda(mk.realizado)}</b> em aquisição (equipe comercial, mídia e ferramentas) contra <b>${moeda(tot.rec.realizado)}</b> de receita. Acima de ${pct1(CONFIG.LIM_COMERCIAL_RECEITA)} o custo de aquisição merece revisão — cheque a conversão de leads e o retorno da mídia no período.`
       });
     }
   }
 
-  // 13. Folha pesada sobre a receita
-  if (M.folha && tot.rec.realizado > 0) {
-    const fl = agregar(M.folha, sel);
-    const p = (fl.realizado / tot.rec.realizado) * 100;
+  // 13. Equipe pesada sobre a receita (Lideranças + Setor Processual e Operacional)
+  if ((M.liderancas || M.processual) && tot.rec.realizado > 0) {
+    const flReal = [M.liderancas, M.processual].filter(Boolean)
+      .reduce((s, g) => s + agregar(g, sel).realizado, 0);
+    const p = (flReal / tot.rec.realizado) * 100;
     if (p > CONFIG.LIM_FOLHA_RECEITA) {
       atencao.push({
-        nivel: p > 80 ? 'critico' : 'atencao', icone: '&#128101;', titulo: `Folha de pagamento em ${pct1(p)} da receita bruta`,
-        texto: `<b>${moeda(fl.realizado)}</b> de folha para <b>${moeda(tot.rec.realizado)}</b> de receita. É o maior custo fixo da estrutura e o que menos responde a corte de curto prazo.`
+        nivel: p > 80 ? 'critico' : 'atencao', icone: '&#128101;', titulo: `Equipe (Lideranças + Processual/Operacional) em ${pct1(p)} da receita bruta`,
+        texto: `<b>${moeda(flReal)}</b> de custo de equipe para <b>${moeda(tot.rec.realizado)}</b> de receita. É o maior custo fixo da estrutura e o que menos responde a corte de curto prazo.`
       });
     }
   }
