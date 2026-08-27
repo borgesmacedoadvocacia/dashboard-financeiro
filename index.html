@@ -528,18 +528,25 @@ const CONFIG = {
 };
 
 /* -------------------------------------------------------------------------
-   COFRE — {SHEET_ID, GOOGLE_API_KEY} cifrados com AES-256-GCM.
+   COFRES — {SHEET_ID, GOOGLE_API_KEY} cifrados com AES-256-GCM, um cofre
+   por perfil autorizado a ver este dashboard (Administração e Lideranças;
+   o perfil Equipe NÃO tem cofre aqui e não consegue decifrar nada).
    Chave derivada de PBKDF2-SHA256(usuário + senha, salt, 310.000 iterações).
    O GCM é autenticado: senha errada faz a decifragem falhar, não há como
    "aceitar" uma senha inválida. Para trocar a senha, use gerar-senha.html.
    ------------------------------------------------------------------------- */
-const COFRE = {
-  v: 1,
-  it: 310000,
-  salt: 'q6Ic+iRXWQESZUikbT/7zQ==',
-  iv: 'gx+nRbR8wSeaSRKp',
-  ct: '8hT2P2Ct4QRfaxsbmC3RhGBTsDMHDW6oF4syARgioijs5SZ+/QGYFq4EJSu3zAt3MeuKdY+Qdcu7fvpbjSXJ/JvKm3nim0+gKZYfzUERAsutqGNOI8uR+oVgYonSCfL33YHLecre4Y5yfJIdvjoMmediLLuHLjQSNHC4ZXVGn4p0j8aWehc='
-};
+const COFRES = [
+  /* Administração */
+  {
+    v: 1,
+    it: 310000,
+    salt: 'q6Ic+iRXWQESZUikbT/7zQ==',
+    iv: 'gx+nRbR8wSeaSRKp',
+    ct: '8hT2P2Ct4QRfaxsbmC3RhGBTsDMHDW6oF4syARgioijs5SZ+/QGYFq4EJSu3zAt3MeuKdY+Qdcu7fvpbjSXJ/JvKm3nim0+gKZYfzUERAsutqGNOI8uR+oVgYonSCfL33YHLecre4Y5yfJIdvjoMmediLLuHLjQSNHC4ZXVGn4p0j8aWehc='
+  },
+  /* Lideranças */
+  {"v":1,"it":310000,"salt":"hhf5/ECscUId+u8QkneGFw==","iv":"LZzYkAvnVw/VS15n","ct":"jWfqgu8SDOCyjP6epJs6x5GPbLb8XGswYIwLEad50MxEET7o5Qq7w9lVcuil2BI8G7gfFeBnN1q5cFzDEImvYnp5Rd06QnK2e8O6/gomDYzj4/d2mYBP7yGEvj0rF6yLlbs02pMariTVDjDAVyr7MR75yo8Qe2csyr+VybYrNgCl2vQxatQ="}
+];
 const CHAVE_SESSAO = 'bm_fluxo_sessao_v2'; // v2: planilha nova (ago/2026) — invalida sessões da planilha antiga
 
 const MESES = ['JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
@@ -1723,21 +1730,31 @@ setInterval(() => { if (DRE) carregarDados(false); }, CONFIG.AUTO_REFRESH_MIN * 
    ========================================================================= */
 const b64bytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
 
-async function abrirCofre(usuario, senha) {
+// Aceita o usuário com ou sem acentos ("Lideranças" e "Liderancas" valem igual)
+const normUsuario = u => u.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+async function abrirUmCofre(cofre, usuario, senha) {
   const enc = new TextEncoder();
   const material = await crypto.subtle.importKey(
-    'raw', enc.encode(usuario.trim().toLowerCase() + '\n' + senha),
+    'raw', enc.encode(normUsuario(usuario) + '\n' + senha),
     'PBKDF2', false, ['deriveKey']
   );
   const chave = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: b64bytes(COFRE.salt), iterations: COFRE.it, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: b64bytes(cofre.salt), iterations: cofre.it, hash: 'SHA-256' },
     material, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
   );
   // AES-GCM é autenticado: senha errada lança OperationError aqui.
   const claro = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv: b64bytes(COFRE.iv) }, chave, b64bytes(COFRE.ct)
+    { name: 'AES-GCM', iv: b64bytes(cofre.iv) }, chave, b64bytes(cofre.ct)
   );
   return JSON.parse(new TextDecoder().decode(claro));
+}
+
+async function abrirCofre(usuario, senha) {
+  for (const cofre of COFRES) {
+    try { return await abrirUmCofre(cofre, usuario, senha); } catch (e) {}
+  }
+  throw new Error('credenciais inválidas');
 }
 
 function entrarNoPainel(segredo, guardarSessao) {
