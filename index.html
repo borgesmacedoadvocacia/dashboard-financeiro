@@ -930,6 +930,42 @@ function cardKPI(o) {
     </div>`;
 }
 
+/* Percorre o ano inteiro, do primeiro mês lançado ao último com saldo.
+   A soma dos balanços mensais tem de fechar com a diferença entre os saldos
+   — quando não fecha, é sinal de que alguma linha do rodapé foi editada à
+   mão e o painel avisa em vez de escolher um dos dois números. */
+function balancoDoAno() {
+  const rIni = DRE.rodape['SALDO INICIAL'];
+  const rFim = DRE.rodape['SALDO FINAL'];
+  const rBal = DRE.rodape['BALANCO'];
+  if (!rIni || !rFim) return null;
+
+  const meses = [];
+  for (let i = 0; i < 12; i++) if (mesTemDados(i)) meses.push(i);
+  if (!meses.length) return null;
+
+  const primeiro = meses[0], ultimo = meses[meses.length - 1];
+  const inicio = parseNumBR(rIni.valores[primeiro]);
+  const fim = parseNumBR(rFim.valores[ultimo]);
+
+  let somaAlta = 0, somaQueda = 0, mesesAlta = 0, mesesQueda = 0, somaBal = 0;
+  for (const i of meses) {
+    const b = rBal ? parseNumBR(rBal.valores[i])
+                   : parseNumBR(rFim.valores[i]) - parseNumBR(rIni.valores[i]);
+    somaBal += b;
+    if (b > 0) { somaAlta += b; mesesAlta++; }
+    else if (b < 0) { somaQueda += b; mesesQueda++; }
+  }
+
+  const balanco = fim - inicio;
+  return {
+    inicio, fim, balanco, somaAlta, somaQueda, mesesAlta, mesesQueda,
+    confere: Math.abs(somaBal - balanco) < 0.01,
+    rotuloPrimeiro: MESES[primeiro].toLowerCase(),
+    rotuloUltimo: MESES_CURTO ? MESES_CURTO[ultimo] : MESES[ultimo].slice(0, 3)
+  };
+}
+
 function renderKPIs(sel) {
   const M = DRE.meta;
   const rec   = M.receitas   ? agregar(M.receitas, sel)   : null;
@@ -1017,6 +1053,25 @@ function renderKPIs(sel) {
       notaRodape: confere
         ? `Bate com o <b style="color:var(--texto)">saldo final do DRE</b> (${moeda(saldoFim)}).`
         : `Saldo final do DRE: <b style="color:var(--texto)">${moeda(saldoFim)}</b> · diferença de <b style="color:var(--amarelo)">${moeda(Math.abs(dif))}</b>. A faixa do topo da planilha pode estar desatualizada.`
+    }));
+  }
+
+  /* Balanço do ano — de propósito FORA do filtro de período. Os demais
+     cartões respondem ao mês escolhido; este responde sempre a mesma
+     pergunta: de quanto o caixa saiu em 1º de janeiro e onde ele está hoje.
+     Trocar o filtro não deveria mudar a resposta disso. */
+  const ano = balancoDoAno();
+  if (ano) {
+    cards.push(cardKPI({
+      nome: 'Balanço do Ano', valor: ano.balanco, semProjecao: true,
+      corValor: 'auto', corCard: ano.balanco < 0 ? 'vermelho' : 'verde',
+      badge: ano.rotuloUltimo, badgeCor: 'neutro',
+      notaRodape:
+        `Saldo em 1º de ${ano.rotuloPrimeiro}: <b style="color:var(--texto)">${moeda(ano.inicio)}</b>` +
+        ` &rarr; hoje: <b style="color:var(--texto)">${moeda(ano.fim)}</b><br>` +
+        `<b style="color:var(--verde)">${ano.mesesAlta}</b> ${ano.mesesAlta === 1 ? 'mês' : 'meses'} de alta ` +
+        `(${moeda(ano.somaAlta)}) e <b style="color:var(--vermelho)">${ano.mesesQueda}</b> de queda ` +
+        `(&minus; ${moeda(Math.abs(ano.somaQueda))})`
     }));
   }
 
