@@ -151,6 +151,10 @@
   .kpi.verde::after { background: var(--verde); }
   .kpi.vermelho::after { background: var(--vermelho); }
   .kpi.amarelo::after { background: var(--amarelo); }
+  /* Cartões de posição de caixa: informam onde o dinheiro está, não se a
+     meta foi batida — por isso cor própria, fora da escala verde/vermelho. */
+  .kpi.azul::after  { background: #3b82f6; }
+  .kpi.ciano::after { background: #06b6d4; }
   .kpi-topo { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.55rem; }
   .kpi-nome { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--texto-muted); font-weight: 700; }
   .kpi-pct {
@@ -780,7 +784,41 @@ function parseDRE(grid) {
     lucro:      acha('LUCRO LIQUIDO')
   };
 
-  return { linhas, grupos, rodape, meta };
+  /* A faixa do topo do DRE traz o caixa aberto em duas parcelas —
+     "INVESTIDO: <valor>" e "SALDO C/C: <valor>". São células soltas, não
+     linhas do demonstrativo, e é a única fonte dessa quebra na planilha.
+     A busca é pelo rótulo, não por endereço fixo: a faixa já mudou de coluna
+     antes e voltaria a quebrar se fosse P2/R2 no código. */
+  const posicoes = lerPosicoesDeCaixa(grid);
+
+  return { linhas, grupos, rodape, meta, posicoes };
+}
+
+/* Procura "INVESTIDO" e "SALDO C/C" nas primeiras linhas e devolve o número
+   que vier logo depois do rótulo, na mesma linha. */
+function lerPosicoesDeCaixa(grid) {
+  const achar = re => {
+    for (let r = 0; r < Math.min(grid.length, 12); r++) {
+      const linha = grid[r] || [];
+      for (let c = 0; c < linha.length; c++) {
+        if (!re.test(String(linha[c] || ''))) continue;
+        for (let k = c + 1; k < Math.min(c + 4, linha.length); k++) {
+          const bruto = linha[k];
+          /* parseNumBR devolve 0 para texto; só aceita a célula que de fato
+             carrega número, para não confundir rótulo vazio com saldo zero. */
+          const ehNumero = typeof bruto === 'number' ||
+            (typeof bruto === 'string' && /\d/.test(bruto));
+          if (ehNumero) return parseNumBR(bruto);
+        }
+      }
+    }
+    return null;
+  };
+  const investido = achar(/investid/i);
+  const contaCorrente = achar(/saldo\s*c\/?\s*c|conta\s*corrente/i);
+  const total = (investido === null && contaCorrente === null)
+    ? null : (investido || 0) + (contaCorrente || 0);
+  return { investido, contaCorrente, total };
 }
 
 /** Valor já com o sinal normalizado: despesa sempre positiva (magnitude). */
@@ -948,12 +986,50 @@ function renderKPIs(sel) {
     notaRodape: `Saldo inicial: <b style="color:var(--texto)">${moeda(saldoIni)}</b><br>Balanço do período: <b style="color:${balanco >= 0 ? 'var(--verde)' : 'var(--vermelho)'}">${(balanco >= 0 ? '+ ' : '− ') + moeda(Math.abs(balanco))}</b> · Margem líquida: <b style="color:var(--texto)">${pct1(margem)}</b>`
   }));
 
+  /* Onde o caixa está parado. A planilha traz a quebra na faixa do topo do
+     DRE; o saldo final do demonstrativo é a soma das duas parcelas. Quando
+     as três batem, o painel diz isso — e quando não batem, diz também: é
+     sinal de que a faixa ficou desatualizada em relação ao fluxo. */
+  const pos = (DRE.posicoes) || {};
+  if (pos.total !== null && pos.total !== undefined) {
+    const dif = pos.total - saldoFim;
+    const confere = Math.abs(dif) < 0.01;
+    const fatia = v => pos.total ? pct1(v / pos.total * 100) : '—';
+
+    cards.push(cardKPI({
+      nome: 'Investido', valor: pos.investido || 0, semProjecao: true,
+      corValor: 'neutro', corCard: 'azul',
+      badge: fatia(pos.investido || 0), badgeCor: 'neutro',
+      notaRodape: 'Aplicações — parte do caixa que não está disponível de imediato'
+    }));
+
+    cards.push(cardKPI({
+      nome: 'Saldo em Conta Corrente', valor: pos.contaCorrente || 0, semProjecao: true,
+      corValor: 'neutro', corCard: 'ciano',
+      badge: fatia(pos.contaCorrente || 0), badgeCor: 'neutro',
+      notaRodape: 'Disponível para pagar as contas do mês sem resgatar aplicação'
+    }));
+
+    cards.push(cardKPI({
+      nome: 'Caixa Total (investido + C/C)', valor: pos.total, semProjecao: true,
+      corValor: 'auto', corCard: confere ? 'verde' : 'amarelo',
+      badge: confere ? 'confere' : 'divergente', badgeCor: confere ? 'verde' : 'amarelo',
+      notaRodape: confere
+        ? `Bate com o <b style="color:var(--texto)">saldo final do DRE</b> (${moeda(saldoFim)}).`
+        : `Saldo final do DRE: <b style="color:var(--texto)">${moeda(saldoFim)}</b> · diferença de <b style="color:var(--amarelo)">${moeda(Math.abs(dif))}</b>. A faixa do topo da planilha pode estar desatualizada.`
+    }));
+  }
+
   document.getElementById('kpis').innerHTML = cards.join('');
 
+  const posCaixa = (DRE.posicoes) || {};
   document.getElementById('subResumo').innerHTML =
-    `<b>${rotuloPeriodo()}</b> · ${sel.length} ${sel.length === 1 ? 'mês' : 'meses'} · comparado com a projeção mensal do DRE${sel.length > 1 ? ` × ${sel.length} meses` : ''} · saídas totais no período: <b>${moeda(saidas)}</b>`;
+    `<b>${rotuloPeriodo()}</b> · ${sel.length} ${sel.length === 1 ? 'mês' : 'meses'} · comparado com a projeção mensal do DRE${sel.length > 1 ? ` × ${sel.length} meses` : ''} · saídas totais no período: <b>${moeda(saidas)}</b>` +
+    (posCaixa.total !== null && posCaixa.total !== undefined
+      ? ` · caixa hoje: <b>${moeda(posCaixa.total)}</b> (${moeda(posCaixa.investido || 0)} investido + ${moeda(posCaixa.contaCorrente || 0)} em conta)`
+      : '');
 
-  return { rec, banc, recLq, desp, imp, lucro, saidas, saldoIni, saldoFim, balanco, margem };
+  return { rec, banc, recLq, desp, imp, lucro, saidas, saldoIni, saldoFim, balanco, margem, posicoes: pos };
 }
 
 /* =========================================================================
