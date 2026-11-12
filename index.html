@@ -651,8 +651,8 @@ function corHex(classe) {
 async function buscarViaAPI() {
   const base = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEET_ID}/values:batchGet`;
   const params = new URLSearchParams();
-  params.append('ranges', `'${CONFIG.ABA_DRE}'!A1:AH200`);
-  params.append('ranges', `'${CONFIG.ABA_FLUXO}'!B5:C5000`);
+  params.append('ranges', `'${CONFIG.ABA_DRE}'!A:AH`);
+  params.append('ranges', `'${CONFIG.ABA_FLUXO}'!B5:C`);
   params.append('valueRenderOption', 'UNFORMATTED_VALUE');
   params.append('key', CONFIG.GOOGLE_API_KEY);
   params.append('_', Date.now());
